@@ -39,6 +39,18 @@ ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_gro
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
+# Derive Git repo URL from IMAGE_REPO: ghcr.io/<org>/<repo> -> https://github.com/<org>/<repo>.git
+ANSIBLE_PULL_REPO="${ANSIBLE_PULL_REPO:-https://github.com/${IMAGE_REPO#ghcr.io/}.git}"
+ANSIBLE_PULL_PLAYBOOK="${ANSIBLE_PULL_PLAYBOOK:-playbooks/switch-installed-target.yml}"
+ANSIBLE_PULL_INVENTORY="${ANSIBLE_PULL_INVENTORY:-config/inventory/hosts.yml}"
+
+mkdir -p "build/${IMAGE_NAME}/etc/sikker-selvbetjening"
+cat > "build/${IMAGE_NAME}/etc/sikker-selvbetjening/ansible-pull.env" <<ENVFILE
+ANSIBLE_PULL_REPO=${ANSIBLE_PULL_REPO}
+ANSIBLE_PULL_PLAYBOOK=${ANSIBLE_PULL_PLAYBOOK}
+ANSIBLE_PULL_INVENTORY=${ANSIBLE_PULL_INVENTORY}
+ENVFILE
+
 NORMALIZED_OVERLAY_PAYLOAD="${REPO_ROOT}/build/${IMAGE_NAME}/overlay.normalized.json"
 
 if [[ -f "${NORMALIZED_OVERLAY_PAYLOAD}" ]]; then
