@@ -1,80 +1,79 @@
-# sikker-selvbetjening-config
+# Sikker Selvbetjening Config
 
-This repository defines configuration overlays per target/site and builds per-target container images based on `ghcr.io/bibsdb/sikker-selvbetjening`.
+Configuration and image-overlay repository for Sikker Selvbetjening.
 
-## Process and Flow
+This project defines target-specific configuration, renders normalized overlay data, and builds derived container images on top of the shared base image.
 
-```mermaid
-flowchart TD
-  A[Author configuration] --> A1[group_vars/*.yml]
-  A --> A2[inventory/build_targets.yml]
-  A --> A3[assets/*]
+## Purpose
 
-  subgraph CI Build Pipeline [.github/workflows/build.yml]
-    B1[Checkout repository]
-    B2[Discover targets from build_targets.yml]
-    B3[Validate groups and image_name uniqueness]
-    B4[Matrix build per target]
-  end
+The repository is responsible for:
 
-  A1 --> B2
-  A2 --> B2
-  B1 --> B2 --> B3 --> B4
+- Declaring per-target configuration in a structured format
+- Validating configuration against shared schemas
+- Rendering an overlay payload for each build target
+- Applying overlays with helper tooling from the base image
+- Building and publishing target-specific images
 
-  subgraph Render and Build [scripts/build-group-image.sh]
-    C1[Resolve target groups CSV and image name]
-    C2[Run ansible render playbook]
-    C3[Build overlay image FROM base image]
-    C4[Tag latest/date/sha]
-    C5[Push to GHCR]
-  end
+## How it works
 
-  B4 --> C1 --> C2 --> C3 --> C4 --> C5
+1. Build targets are selected from the inventory configuration.
+2. Target configuration is loaded and merged in deterministic order.
+3. The merged configuration is normalized and written as overlay payload.
+4. Base-image overlay helpers transform payload data into concrete filesystem changes.
+5. A derived image is built from the base image and pushed with standard tags.
 
-  subgraph Overlay Render [playbooks/render-host-overlays.yml]
-    D1[Load selected group_vars in order]
-    D2[Recursive merge into overlay_sections]
-    D3[Normalize *_file paths]
-    D4[Copy referenced assets into build root]
-    D5[Render section YAML files]
-  end
+## Repository structure
 
-  C2 --> D1 --> D2 --> D3 --> D4 --> D5
+- config/
+	- Configuration input for targets and environments
+- playbooks/
+	- Rendering and operational playbooks
+- schemas/
+	- JSON schema definitions used for configuration validation
+- scripts/
+	- Local and CI helper scripts for validation and image builds
+- templates/
+	- Reusable template fragments used during render steps
 
-  subgraph Output Layout [build/<image>/usr/share/sikker-selvbetjening/config]
-    E1[printer.yml]
-    E2[wifi.yml]
-    E3[desktop.yml]
-    subgraph Assets [assets/]
-      E4[referenced files from source assets]
-    end
-  end
+## Validation model
 
-  D5 --> E1
-  D5 --> E2
-  D5 --> E3
-  D4 --> E4
-  E1 --> C3
-  E2 --> C3
-  E3 --> C3
-  E4 --> C3
+Validation is done in two layers:
 
-  subgraph Optional Validation [Local/CI helper]
-    V1[schemas/group-vars.schema.json]
-    V2[scripts/validate-group-vars.py]
-    V3[Cross-field checks default_printer membership]
-  end
+- Schema validation: configuration is validated against the shared schema contract.
+- Logical validation: additional checks ensure internally consistent settings before build.
 
-  A1 -. validate against .-> V1
-  A1 -. validate with .-> V2 --> V3
+The schema contract is sourced from the base image, which keeps configuration validation aligned with runtime expectations.
 
-```
+## Build and release
 
-## Key Paths
+The image build flow is target-oriented and designed for CI matrix execution:
 
-- Group overlays: `group_vars/`
-- Build target matrix input: `inventory/build_targets.yml`
-- Overlay renderer: `playbooks/render-host-overlays.yml`
-- Build and push script: `scripts/build-group-image.sh`
-- Optional cross-field validator: `scripts/validate-group-vars.py`
-- Schema definitions: `schemas/`
+- Render target overlay into a build directory
+- Apply helper-driven transformations from the base image
+- Build derived image
+- Tag and push to registry
+
+Tags typically include latest and immutable identifiers (for example date and commit-derived tags).
+
+## Relationship to the base image
+
+This repository depends on the base image in two important ways:
+
+- It reads schema definitions from the base image to validate configuration.
+- It runs base-image overlay helper tools to materialize final filesystem changes.
+
+This makes schema locations and helper interfaces a compatibility boundary between the two repositories.
+
+## Typical usage
+
+Use this repository when you need to:
+
+- Build a configuration-specific image for one or more targets
+- Validate configuration changes before publishing
+- Produce reproducible overlays for deployment pipelines
+
+## Development notes
+
+- Prefer small, incremental configuration changes per target.
+- Run validation before building and pushing images.
+- Keep render logic deterministic so CI and local runs produce identical output.
