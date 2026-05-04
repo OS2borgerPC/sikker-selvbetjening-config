@@ -9,7 +9,7 @@ if [[ -f "$IMAGE_CONFIG_FILE" ]]; then
   source "$IMAGE_CONFIG_FILE"
 fi
 
-BASE_IMAGE="${BASE_IMAGE:-ghcr.io/bibsdb/sikker-selvbetjening:latest}"
+BASE_IMAGE="${BASE_IMAGE:-ghcr.io/os2borgerpc/sikker-selvbetjening:latest}"
 SCHEMAS_PATH_IN_IMAGE="${SCHEMAS_PATH_IN_IMAGE:-/usr/share/sikker-selvbetjening/schemas}"
 GROUP_VARS_GLOB="${GROUP_VARS_GLOB:-config/group_vars/*.yml}"
 

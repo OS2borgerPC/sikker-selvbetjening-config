@@ -3,7 +3,7 @@ ansible_connection: local
 ansible_become: true
 
 # Registry/repository used by images built from this project.
-bootc_image_repo: ghcr.io/bibsdb/sikker-selvbetjening-config
+bootc_image_repo: ghcr.io/os2borgerpc/sikker-selvbetjening-config
 
 # Fallback tag when host-specific version is not set.
 bootc_default_version: latest
