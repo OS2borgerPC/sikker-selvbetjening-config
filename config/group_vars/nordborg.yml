@@ -1,5 +1,5 @@
 desktop: 
-  background_image_file: assets/bg-blue.jpg
+  background_image_file: assets/bg-green.jpg
 
 printer:
   default_printer: ricoh_c3010
