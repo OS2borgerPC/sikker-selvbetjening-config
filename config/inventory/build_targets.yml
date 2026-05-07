@@ -11,5 +11,5 @@ targets:
     description: Build image for Nordborg
     groups:
       - borgerpc-basis
-      - bg-green
+      - bg-blue
     image_name: nordborg
