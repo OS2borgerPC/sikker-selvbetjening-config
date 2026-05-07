@@ -1,9 +1,5 @@
-desktop: 
-  background_image_file: assets/bg-green.jpg
-
 printer:
   default_printer: ricoh_c3010
- 
   with_ppd:
     ricoh_c3010:
       display_name: P11567 - Ricoh C3010

@@ -1,7 +1,15 @@
 targets:
+  - name: Sønderborg
+    description: Build image for Sønderborg Bibliotek
+    groups:
+      - borgerpc-basis
+      - bg-blue
+      - print-sonderborg
+    image_name: sonderborg
+
   - name: Nordborg
     description: Build image for Nordborg
     groups:
       - borgerpc-basis
-      - nordborg
+      - bg-green
     image_name: nordborg
