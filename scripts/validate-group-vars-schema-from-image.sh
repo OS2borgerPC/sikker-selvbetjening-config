@@ -2,16 +2,10 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE_CONFIG_FILE="${IMAGE_CONFIG_FILE:-$REPO_ROOT/.env}"
 
-if [[ -f "$IMAGE_CONFIG_FILE" ]]; then
-  # shellcheck disable=SC1090
-  source "$IMAGE_CONFIG_FILE"
-fi
-
-BASE_IMAGE="${BASE_IMAGE:-ghcr.io/os2borgerpc/sikker-selvbetjening:latest}"
-SCHEMAS_PATH_IN_IMAGE="${SCHEMAS_PATH_IN_IMAGE:-/usr/share/sikker-selvbetjening/schemas}"
-GROUP_VARS_GLOB="${GROUP_VARS_GLOB:-config/group_vars/*.yml}"
+: "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
+: "${SCHEMAS_PATH_IN_IMAGE:?SCHEMAS_PATH_IN_IMAGE must be set by workflow environment}"
+GROUPS_FILE="${GROUPS_FILE:-$REPO_ROOT/config/groups.yml}"
 
 if ! command -v podman >/dev/null 2>&1; then
   echo "podman is required to extract schemas from the base image" >&2
@@ -63,37 +57,45 @@ EOF
   exit 1
 fi
 
-# Some schema bundles use relative $id values (for example "./group-vars.schema.json"),
-# which can cause check-jsonschema to resolve sibling refs against the working directory.
-# Removing relative $id values keeps $ref resolution anchored to the schema file location.
-python3 - <<'PY' "$tmp_dir/schemas"
+# Explode groups.yml into per-group JSON files (sections only, no 'name' key)
+# so each can be validated against group-vars.schema.json from the base image.
+python3 - <<'PY' "$GROUPS_FILE" "$tmp_dir/groups"
 import json
 import pathlib
 import sys
 
-root = pathlib.Path(sys.argv[1])
+import yaml
 
-for path in root.rglob("*.json"):
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        continue
+groups_file = pathlib.Path(sys.argv[1])
+out_dir = pathlib.Path(sys.argv[2])
+out_dir.mkdir(parents=True, exist_ok=True)
 
-    if isinstance(data, dict):
-        schema_id = data.get("$id")
-        if isinstance(schema_id, str) and schema_id.startswith("./"):
-            del data["$id"]
-            path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+try:
+    data = yaml.safe_load(groups_file.read_text(encoding="utf-8"))
+except Exception as exc:
+    print(f"ERROR: failed to parse {groups_file}: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+groups = data.get("groups") if isinstance(data, dict) else None
+if not isinstance(groups, list):
+    print(f"ERROR: {groups_file}: top-level 'groups' must be a list", file=sys.stderr)
+    raise SystemExit(1)
+
+for group in groups:
+    name = group.get("name")
+    if not isinstance(name, str) or not name:
+        print(f"ERROR: group entry missing valid 'name': {group}", file=sys.stderr)
+        raise SystemExit(1)
+    sections = {k: v for k, v in group.items() if k != "name"}
+    (out_dir / f"{name}.json").write_text(json.dumps(sections), encoding="utf-8")
 PY
 
-shopt -s nullglob
-group_var_files=( $GROUP_VARS_GLOB )
-shopt -u nullglob
+group_section_files=( "$tmp_dir/groups"/*.json )
 
-if [[ ${#group_var_files[@]} -eq 0 ]]; then
-  echo "No group_vars files found matching: $GROUP_VARS_GLOB" >&2
+if [[ ${#group_section_files[@]} -eq 0 ]]; then
+  echo "No groups found in: $GROUPS_FILE" >&2
   exit 1
 fi
 
-echo "Validating ${#group_var_files[@]} group_vars file(s) against schema from base image"
-check-jsonschema --schemafile "$schema_file" "${group_var_files[@]}"
+echo "Validating ${#group_section_files[@]} group(s) from $GROUPS_FILE against schema from base image"
+check-jsonschema --schemafile "$schema_file" "${group_section_files[@]}"

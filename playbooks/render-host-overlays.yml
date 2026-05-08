@@ -15,12 +15,21 @@
       set_fact:
         normalized_target_groups: "{{ target_groups.split(',') if target_groups is string else target_groups }}"
 
-    - name: Load group vars for target groups in order
+    - name: Load config/groups.yml
       include_vars:
-        file: "../config/group_vars/{{ item }}.yml"
-        name: overlay_group_vars
+        file: "../config/groups.yml"
+        name: all_groups_data
+
+    - name: Build group lookup by name
+      set_fact:
+        groups_by_name: "{{ dict(all_groups_data.groups | map(attribute='name') | zip(all_groups_data.groups)) }}"
+
+    - name: Validate all target groups exist in groups.yml
+      assert:
+        that:
+          - item in groups_by_name
+        fail_msg: "Group '{{ item }}' not found in config/groups.yml"
       loop: "{{ normalized_target_groups }}"
-      register: loaded_group_vars
 
     - name: Initialize merged overlay sections
       set_fact:
@@ -28,8 +37,11 @@
 
     - name: Merge overlay sections in group order
       set_fact:
-        overlay_sections: "{{ overlay_sections | combine(item.ansible_facts.overlay_group_vars, recursive=True) }}"
-      loop: "{{ loaded_group_vars.results }}"
+        overlay_sections: >-
+          {{ overlay_sections | combine(
+               groups_by_name[item] | dict2items | rejectattr('key', 'equalto', 'name') | items2dict,
+               recursive=True) }}
+      loop: "{{ normalized_target_groups }}"
 
     - name: Set build root path
       set_fact:

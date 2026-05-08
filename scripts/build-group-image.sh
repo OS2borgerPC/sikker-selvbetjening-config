@@ -2,19 +2,18 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE_CONFIG_FILE="${IMAGE_CONFIG_FILE:-$REPO_ROOT/.env}"
 
-if [[ -f "$IMAGE_CONFIG_FILE" ]]; then
-  # shellcheck disable=SC1090
-  source "$IMAGE_CONFIG_FILE"
-fi
+: "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
+: "${IMAGE_REPO:?IMAGE_REPO must be set by workflow environment}"
 
 TARGET_GROUPS_CSV="$1"
 FIRST_GROUP="${TARGET_GROUPS_CSV%%,*}"
 IMAGE_NAME="${2:-$FIRST_GROUP}"
-IMAGE_REPO="${IMAGE_REPO:-ghcr.io/bibsdb/sikker-selvbetjening-config}"
-BASE_IMAGE="${BASE_IMAGE:-ghcr.io/bibsdb/sikker-selvbetjening:latest}"
+export IMAGE_REPO
 DATE_TAG="$(date -u +%Y%m%d)"
+
+echo "Using BASE_IMAGE=${BASE_IMAGE}"
+echo "Using IMAGE_REPO=${IMAGE_REPO}"
 
 if [[ -n "${GITHUB_SHA:-}" ]]; then
   SHA_TAG="sha-${GITHUB_SHA:0:7}"
@@ -35,21 +34,10 @@ if [[ -n "$SHA_TAG" ]]; then
 fi
 
 rm -rf "build/${IMAGE_NAME}"
+
 ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_groups=${TARGET_GROUPS_CSV}" -e "build_name=${IMAGE_NAME}"
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
-
-# Derive Git repo URL from IMAGE_REPO: ghcr.io/<org>/<repo> -> https://github.com/<org>/<repo>.git
-ANSIBLE_PULL_REPO="${ANSIBLE_PULL_REPO:-https://github.com/${IMAGE_REPO#ghcr.io/}.git}"
-ANSIBLE_PULL_PLAYBOOK="${ANSIBLE_PULL_PLAYBOOK:-playbooks/switch-installed-target.yml}"
-ANSIBLE_PULL_INVENTORY="${ANSIBLE_PULL_INVENTORY:-config/inventory/hosts.yml}"
-
-mkdir -p "build/${IMAGE_NAME}/etc/sikker-selvbetjening"
-cat > "build/${IMAGE_NAME}/etc/sikker-selvbetjening/ansible-pull.env" <<ENVFILE
-ANSIBLE_PULL_REPO=${ANSIBLE_PULL_REPO}
-ANSIBLE_PULL_PLAYBOOK=${ANSIBLE_PULL_PLAYBOOK}
-ANSIBLE_PULL_INVENTORY=${ANSIBLE_PULL_INVENTORY}
-ENVFILE
 
 NORMALIZED_OVERLAY_PAYLOAD="${REPO_ROOT}/build/${IMAGE_NAME}/overlay.normalized.json"
 

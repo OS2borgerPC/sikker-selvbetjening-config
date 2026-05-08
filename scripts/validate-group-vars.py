@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate cross-field constraints for group_vars YAML files.
+"""Validate cross-field constraints for groups.yml.
 
 JSON Schema cannot portably enforce that printer.default_printer matches one of
 the dynamic keys under printer.no_ppd or printer.with_ppd. This script enforces
@@ -9,7 +9,6 @@ that rule.
 from __future__ import annotations
 
 import argparse
-import glob
 import sys
 from pathlib import Path
 
@@ -25,18 +24,10 @@ def _collect_ids(printer_section: dict) -> set[str]:
     return ids
 
 
-def validate_file(path: Path) -> list[str]:
+def validate_group(group: dict, source: str) -> list[str]:
     errors: list[str] = []
 
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except Exception as exc:
-        return [f"{path}: failed to parse YAML: {exc}"]
-
-    if not isinstance(data, dict):
-        return [f"{path}: top-level document must be a mapping"]
-
-    printer = data.get("printer")
+    printer = group.get("printer")
     if not isinstance(printer, dict):
         return errors
 
@@ -47,7 +38,7 @@ def validate_file(path: Path) -> list[str]:
     available_ids = _collect_ids(printer)
     if not available_ids:
         errors.append(
-            f"{path}: printer.default_printer is set to '{default_printer}', "
+            f"{source}: printer.default_printer is set to '{default_printer}', "
             "but no printer IDs exist under printer.no_ppd or printer.with_ppd"
         )
         return errors
@@ -55,7 +46,7 @@ def validate_file(path: Path) -> list[str]:
     if str(default_printer) not in available_ids:
         ordered = ", ".join(sorted(available_ids))
         errors.append(
-            f"{path}: printer.default_printer '{default_printer}' does not match "
+            f"{source}: printer.default_printer '{default_printer}' does not match "
             f"any known printer ID ({ordered})"
         )
 
@@ -64,46 +55,43 @@ def validate_file(path: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate cross-field rules for group_vars files."
+        description="Validate cross-field rules for groups.yml."
     )
     parser.add_argument(
-        "paths",
-        nargs="*",
-        default=["config/group_vars/*.yml"],
-        help="Files or glob patterns to validate (default: config/group_vars/*.yml)",
+        "--groups-file",
+        type=Path,
+        default=Path("config/groups.yml"),
+        help="Path to groups.yml (default: config/groups.yml)",
     )
     args = parser.parse_args()
 
-    files: list[Path] = []
-    for pattern in args.paths:
-        matches = [Path(p) for p in glob.glob(pattern)]
-        if matches:
-            files.extend(matches)
-        else:
-            files.append(Path(pattern))
+    groups_file: Path = args.groups_file
+    if not groups_file.exists():
+        print(f"ERROR: {groups_file}: file does not exist", file=sys.stderr)
+        return 1
 
-    seen: set[Path] = set()
-    ordered_files: list[Path] = []
-    for file_path in files:
-        resolved = file_path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        ordered_files.append(file_path)
+    try:
+        data = yaml.safe_load(groups_file.read_text(encoding="utf-8")) or {}
+    except Exception as exc:
+        print(f"ERROR: {groups_file}: failed to parse YAML: {exc}", file=sys.stderr)
+        return 1
+
+    groups = data.get("groups")
+    if not isinstance(groups, list):
+        print(f"ERROR: {groups_file}: top-level 'groups' must be a list", file=sys.stderr)
+        return 1
 
     all_errors: list[str] = []
-    for file_path in ordered_files:
-        if not file_path.exists():
-            all_errors.append(f"{file_path}: file does not exist")
-            continue
-        all_errors.extend(validate_file(file_path))
+    for group in groups:
+        name = group.get("name", "<unnamed>")
+        all_errors.extend(validate_group(group, f"{groups_file}[{name}]"))
 
     if all_errors:
         for error in all_errors:
             print(error, file=sys.stderr)
         return 1
 
-    print("group_vars validation passed")
+    print("groups.yml validation passed")
     return 0
 
 
