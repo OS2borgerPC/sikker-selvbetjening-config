@@ -1,10 +1,15 @@
 name: Build group config images
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+
+env:
+  # Base container image used for schema validation and as build FROM image.
+  BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
+  # Registry/repository prefix where derived group images are tagged and pushed.
+  IMAGE_REPO: ghcr.io/bibsdb/sikker-selvbetjening-config
+  # Location of schema files inside BASE_IMAGE.
+  SCHEMAS_PATH_IN_IMAGE: /usr/share/sikker-selvbetjening/schemas
 
 permissions:
   contents: read
@@ -35,22 +40,34 @@ jobs:
           from pathlib import Path
           import yaml
 
-          build_targets = yaml.safe_load(Path("config/inventory/build_targets.yml").read_text()) or {}
+          build_targets = yaml.safe_load(Path("config/build_targets.yml").read_text()) or {}
+          groups_data = yaml.safe_load(Path("config/groups.yml").read_text()) or {}
+
+          if not isinstance(groups_data, dict):
+            raise SystemExit("config/groups.yml must be a mapping with a top-level 'groups' list")
+
+          groups = groups_data.get("groups", [])
+          if not isinstance(groups, list):
+            raise SystemExit("config/groups.yml must define a list under 'groups'")
+
+          available_group_names = {
+            item.get("name") for item in groups if isinstance(item, dict) and item.get("name")
+          }
 
           if not isinstance(build_targets, dict):
-            raise SystemExit("config/inventory/build_targets.yml must be a mapping with a top-level 'targets' list")
+            raise SystemExit("config/build_targets.yml must be a mapping with a top-level 'targets' list")
 
           targets = build_targets.get("targets", [])
 
           if not isinstance(targets, list):
-            raise SystemExit("config/inventory/build_targets.yml must define a list under 'targets'")
+            raise SystemExit("config/build_targets.yml must define a list under 'targets'")
 
           entries = []
           seen_image_names = set()
 
           for item in targets:
             if not isinstance(item, dict):
-              raise SystemExit("Each target in config/inventory/build_targets.yml must be a mapping")
+              raise SystemExit("Each target in config/build_targets.yml must be a mapping")
 
             target_name = item.get("name")
             description = item.get("description")
@@ -80,8 +97,10 @@ jobs:
             seen_image_names.add(image_name)
 
             for group_name in groups:
-              if not Path(f"config/group_vars/{group_name}.yml").exists():
-                raise SystemExit(f"Missing config/group_vars/{group_name}.yml for target '{target_name}'")
+              if group_name not in available_group_names:
+                raise SystemExit(
+                  f"Missing group '{group_name}' in config/groups.yml for target '{target_name}'"
+                )
 
             entries.append(
               {
@@ -93,7 +112,7 @@ jobs:
             )
 
           if not entries:
-            raise SystemExit("No build targets found in config/inventory/build_targets.yml")
+            raise SystemExit("No build targets found in config/build_targets.yml")
 
           print(f"matrix={json.dumps({'include': entries})}")
           PY
