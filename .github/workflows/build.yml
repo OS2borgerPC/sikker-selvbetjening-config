@@ -7,7 +7,7 @@ env:
   # Base container image used for schema validation and as build FROM image.
   BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
   # Registry/repository prefix where derived group images are tagged and pushed.
-  IMAGE_REPO: ghcr.io/bibsdb/sikker-selvbetjening-config
+  IMAGE_REPO: ghcr.io/os2borgerpc/sikker-selvbetjening-config
   # Location of schema files inside BASE_IMAGE.
   SCHEMAS_PATH_IN_IMAGE: /usr/share/sikker-selvbetjening/schemas
 
