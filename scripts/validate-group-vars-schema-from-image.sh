@@ -78,38 +78,38 @@ except Exception as exc:
 
 domains = data.get("domains") if isinstance(data, dict) else None
 if not isinstance(domains, list):
-  print(f"ERROR: {groups_file}: top-level 'domains' must be a list", file=sys.stderr)
+    print(f"ERROR: {groups_file}: top-level 'domains' must be a list", file=sys.stderr)
     raise SystemExit(1)
 
 for domain in domains:
-  if not isinstance(domain, dict):
-    print(f"ERROR: domain entry must be an object: {domain}", file=sys.stderr)
-    raise SystemExit(1)
+    if not isinstance(domain, dict):
+        print(f"ERROR: domain entry must be an object: {domain}", file=sys.stderr)
+        raise SystemExit(1)
 
-  domain_name = domain.get("domain")
-  if not isinstance(domain_name, str) or not domain_name:
-    print(f"ERROR: domain entry missing valid 'domain': {domain}", file=sys.stderr)
-    raise SystemExit(1)
+    domain_name = domain.get("domain")
+    if not isinstance(domain_name, str) or not domain_name:
+        print(f"ERROR: domain entry missing valid 'domain': {domain}", file=sys.stderr)
+        raise SystemExit(1)
 
-  groups = domain.get("groups")
-  if not isinstance(groups, list):
-    print(
-      f"ERROR: {groups_file}: domain '{domain_name}' must define 'groups' as a list",
-      file=sys.stderr,
-    )
-    raise SystemExit(1)
+    groups = domain.get("groups")
+    if not isinstance(groups, list):
+        print(
+            f"ERROR: {groups_file}: domain '{domain_name}' must define 'groups' as a list",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
-  for group in groups:
-    name = group.get("name") if isinstance(group, dict) else None
-    if not isinstance(name, str) or not name:
-      print(
-        f"ERROR: group entry missing valid 'name' in domain '{domain_name}': {group}",
-        file=sys.stderr,
-      )
-      raise SystemExit(1)
-    sections = {k: v for k, v in group.items() if k != "name"}
-    out_name = f"{domain_name}__{name}.json"
-    (out_dir / out_name).write_text(json.dumps(sections), encoding="utf-8")
+    for group in groups:
+        name = group.get("name") if isinstance(group, dict) else None
+        if not isinstance(name, str) or not name:
+            print(
+                f"ERROR: group entry missing valid 'name' in domain '{domain_name}': {group}",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        sections = {k: v for k, v in group.items() if k != "name"}
+        out_name = f"{domain_name}__{name}.json"
+        (out_dir / out_name).write_text(json.dumps(sections), encoding="utf-8")
 PY
 
 group_section_files=( "$tmp_dir/groups"/*.json )
