@@ -9,6 +9,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_GROUPS_CSV="$1"
 FIRST_GROUP="${TARGET_GROUPS_CSV%%,*}"
 IMAGE_NAME="${2:-$FIRST_GROUP}"
+TARGET_DOMAIN="${3:?target domain argument is required}"
+IMAGE_REF_BASE="${IMAGE_REPO}/${TARGET_DOMAIN}/${IMAGE_NAME}"
 export IMAGE_REPO
 DATE_TAG="$(date -u +%Y%m%d)"
 
@@ -35,7 +37,7 @@ fi
 
 rm -rf "build/${IMAGE_NAME}"
 
-ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_groups=${TARGET_GROUPS_CSV}" -e "build_name=${IMAGE_NAME}"
+ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_domain=${TARGET_DOMAIN}" -e "target_groups=${TARGET_GROUPS_CSV}" -e "build_name=${IMAGE_NAME}"
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
@@ -72,7 +74,7 @@ if [[ -f "${NORMALIZED_OVERLAY_PAYLOAD}" ]]; then
 fi
 
 podman build \
-  -t ${IMAGE_REPO}/${IMAGE_NAME}:latest \
+  -t ${IMAGE_REF_BASE}:latest \
   -f - . <<EOF
 FROM ${BASE_IMAGE}
 COPY build/${IMAGE_NAME}/usr/ /usr/
@@ -82,7 +84,7 @@ EOF
 
 for tag in "${TAGS[@]}"; do
   if [[ "$tag" != "latest" ]]; then
-    podman tag "${IMAGE_REPO}/${IMAGE_NAME}:latest" "${IMAGE_REPO}/${IMAGE_NAME}:${tag}"
+    podman tag "${IMAGE_REF_BASE}:latest" "${IMAGE_REF_BASE}:${tag}"
   fi
-  podman push "${IMAGE_REPO}/${IMAGE_NAME}:${tag}"
+  podman push "${IMAGE_REF_BASE}:${tag}"
 done

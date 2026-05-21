@@ -1,7 +1,8 @@
-build_targets:
-  - name: Nordborg
-    description: Build image for Nordborg
-    groups:
-      - groupA
-      - groupB
-    image_name: nordborg
+domains:
+  - domain: demo
+    build_targets:
+      - name: Nordborg
+        description: Build image for Nordborg
+        groups:
+          - nordborg
+        image_name: nordborg

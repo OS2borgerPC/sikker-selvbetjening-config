@@ -4,6 +4,13 @@
   gather_facts: false
 
   pre_tasks:
+    - name: Validate target_domain input
+      assert:
+        that:
+          - target_domain is defined
+          - target_domain | length > 0
+        fail_msg: "target_domain must be provided"
+
     - name: Validate target_groups input
       assert:
         that:
@@ -20,15 +27,25 @@
         file: "../config/groups.yml"
         name: all_groups_data
 
-    - name: Build group lookup by name
+    - name: Select domain from groups.yml
       set_fact:
-        groups_by_name: "{{ dict(all_groups_data.groups | map(attribute='name') | zip(all_groups_data.groups)) }}"
+        selected_domain: "{{ (all_groups_data.domains | default([]) | selectattr('domain', 'equalto', target_domain) | list | first) | default({}) }}"
 
-    - name: Validate all target groups exist in groups.yml
+    - name: Validate selected domain exists in groups.yml
+      assert:
+        that:
+          - selected_domain.domain is defined
+        fail_msg: "Domain '{{ target_domain }}' not found in config/groups.yml"
+
+    - name: Build group lookup by name within domain
+      set_fact:
+        groups_by_name: "{{ dict((selected_domain.groups | default([])) | map(attribute='name') | zip((selected_domain.groups | default([])))) }}"
+
+    - name: Validate all target groups exist in selected domain
       assert:
         that:
           - item in groups_by_name
-        fail_msg: "Group '{{ item }}' not found in config/groups.yml"
+        fail_msg: "Group '{{ item }}' not found in domain '{{ target_domain }}' in config/groups.yml"
       loop: "{{ normalized_target_groups }}"
 
     - name: Initialize merged overlay sections

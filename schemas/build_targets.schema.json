@@ -1,44 +1,69 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "./build_targets.schema.json",
   "title": "Build Targets",
+  "description": "Domain-scoped build target definitions for CI image builds.",
   "type": "object",
+  "additionalProperties": false,
+  "required": ["domains"],
   "properties": {
-              "description": {
-                "type": "string",
-                "title": "Description",
-                "description": "Optional description of the build target"
-              },
-    "build_targets": {
+    "domains": {
       "type": "array",
+      "title": "Domains",
+      "minItems": 1,
       "items": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["domain", "build_targets"],
         "properties": {
-          "name": {
+          "domain": {
             "type": "string",
-            "title": "Build Target Name"
+            "title": "Domain",
+            "description": "Owning domain for this set of build targets.",
+            "pattern": "^[a-z][a-z0-9_-]*$"
           },
-          "groups": {
+          "build_targets": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "title": "Group Name"
-            },
+            "title": "Build Targets",
             "minItems": 1,
-            "title": "Groups"
-          },
-          "image_name": {
-            "type": "string",
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-            "title": "Image Name",
-            "description": "A valid identifier (no spaces or special characters, must start with a letter or underscore)"
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "groups", "image_name"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "title": "Build Target Name",
+                  "minLength": 1
+                },
+                "description": {
+                  "type": "string",
+                  "title": "Description",
+                  "description": "Optional description of the build target",
+                  "minLength": 1
+                },
+                "groups": {
+                  "type": "array",
+                  "title": "Groups",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "title": "Group Name",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "image_name": {
+                  "type": "string",
+                  "title": "Image Name",
+                  "description": "Identifier-safe image key for automation.",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                }
+              }
+            }
           }
-        },
-        "required": ["name", "groups", "image_name"],
-        "additionalProperties": false
-      },
-      "title": "Build Targets"
+        }
+      }
     }
-  },
-  "required": ["build_targets"],
-  "additionalProperties": false
+  }
 }

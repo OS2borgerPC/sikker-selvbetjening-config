@@ -44,73 +44,111 @@ jobs:
           groups_data = yaml.safe_load(Path("config/groups.yml").read_text()) or {}
 
           if not isinstance(groups_data, dict):
-            raise SystemExit("config/groups.yml must be a mapping with a top-level 'groups' list")
+            raise SystemExit("config/groups.yml must be a mapping with a top-level 'domains' list")
 
-          groups = groups_data.get("groups", [])
-          if not isinstance(groups, list):
-            raise SystemExit("config/groups.yml must define a list under 'groups'")
+          groups_domains = groups_data.get("domains", [])
+          if not isinstance(groups_domains, list):
+            raise SystemExit("config/groups.yml must define a list under 'domains'")
 
-          available_group_names = {
-            item.get("name") for item in groups if isinstance(item, dict) and item.get("name")
-          }
+          available_groups_by_domain = {}
+          for domain_item in groups_domains:
+            if not isinstance(domain_item, dict):
+              raise SystemExit("Each domain in config/groups.yml must be a mapping")
+
+            domain_name = domain_item.get("domain")
+            if not domain_name:
+              raise SystemExit("Each domain in config/groups.yml must define 'domain'")
+
+            domain_groups = domain_item.get("groups", [])
+            if not isinstance(domain_groups, list):
+              raise SystemExit(
+                f"Domain '{domain_name}' in config/groups.yml must define a list under 'groups'"
+              )
+
+            available_groups_by_domain[domain_name] = {
+              item.get("name") for item in domain_groups if isinstance(item, dict) and item.get("name")
+            }
 
 
           if not isinstance(build_targets, dict):
-            raise SystemExit("config/build_targets.yml must be a mapping with a top-level 'build_targets' list")
+            raise SystemExit("config/build_targets.yml must be a mapping with a top-level 'domains' list")
 
-          targets = build_targets.get("build_targets", [])
-
-          if not isinstance(targets, list):
-            raise SystemExit("config/build_targets.yml must define a list under 'build_targets'")
+          target_domains = build_targets.get("domains", [])
+          if not isinstance(target_domains, list):
+            raise SystemExit("config/build_targets.yml must define a list under 'domains'")
 
           entries = []
           seen_image_names = set()
 
-          for item in targets:
-            if not isinstance(item, dict):
-              raise SystemExit("Each target in config/build_targets.yml must be a mapping")
+          for domain_item in target_domains:
+            if not isinstance(domain_item, dict):
+              raise SystemExit("Each domain in config/build_targets.yml must be a mapping")
 
-            target_name = item.get("name")
-            description = item.get("description")
-            groups = item.get("groups")
-            image_name = item.get("image_name")
+            domain_name = domain_item.get("domain")
+            if not domain_name:
+              raise SystemExit("Each domain in config/build_targets.yml must define 'domain'")
 
-            if not target_name:
-              raise SystemExit("Each target must define 'name'")
+            targets = domain_item.get("build_targets", [])
+            if not isinstance(targets, list):
+              raise SystemExit(
+                f"Domain '{domain_name}' in config/build_targets.yml must define a list under 'build_targets'"
+              )
 
-            if not description:
-              raise SystemExit(f"Target '{target_name}' is missing 'description'")
+            if domain_name not in available_groups_by_domain:
+              raise SystemExit(
+                f"Domain '{domain_name}' in config/build_targets.yml is missing in config/groups.yml"
+              )
 
-            if not isinstance(groups, list) or not groups:
-              raise SystemExit(f"Target '{target_name}' must define a non-empty 'groups' list")
+            available_group_names = available_groups_by_domain[domain_name]
 
-            if any(not isinstance(group_name, str) or not group_name for group_name in groups):
-              raise SystemExit(f"Target '{target_name}' contains invalid group names")
-
-            if len(set(groups)) != len(groups):
-              raise SystemExit(f"Target '{target_name}' contains duplicate groups")
-
-            if not image_name:
-              raise SystemExit(f"Target '{target_name}' is missing 'image_name'")
-
-            if image_name in seen_image_names:
-              raise SystemExit(f"Duplicate image_name '{image_name}'")
-            seen_image_names.add(image_name)
-
-            for group_name in groups:
-              if group_name not in available_group_names:
+            for item in targets:
+              if not isinstance(item, dict):
                 raise SystemExit(
-                  f"Missing group '{group_name}' in config/groups.yml for target '{target_name}'"
+                  f"Each target in domain '{domain_name}' in config/build_targets.yml must be a mapping"
                 )
 
-            entries.append(
-              {
-                "name": target_name,
-                "description": description,
-                "groups_csv": ",".join(groups),
-                "image": image_name,
-              }
-            )
+              target_name = item.get("name")
+              description = item.get("description")
+              groups = item.get("groups")
+              image_name = item.get("image_name")
+
+              if not target_name:
+                raise SystemExit(f"Each target in domain '{domain_name}' must define 'name'")
+
+              if not isinstance(groups, list) or not groups:
+                raise SystemExit(f"Target '{target_name}' must define a non-empty 'groups' list")
+
+              if any(not isinstance(group_name, str) or not group_name for group_name in groups):
+                raise SystemExit(f"Target '{target_name}' contains invalid group names")
+
+              if len(set(groups)) != len(groups):
+                raise SystemExit(f"Target '{target_name}' contains duplicate groups")
+
+              if not image_name:
+                raise SystemExit(f"Target '{target_name}' is missing 'image_name'")
+
+              image_key = f"{domain_name}:{image_name}"
+              if image_key in seen_image_names:
+                raise SystemExit(
+                  f"Duplicate image_name '{image_name}' in domain '{domain_name}'"
+                )
+              seen_image_names.add(image_key)
+
+              for group_name in groups:
+                if group_name not in available_group_names:
+                  raise SystemExit(
+                    f"Missing group '{group_name}' in domain '{domain_name}' in config/groups.yml for target '{target_name}'"
+                  )
+
+              entries.append(
+                {
+                  "name": target_name,
+                  "description": description,
+                  "domain": domain_name,
+                  "groups_csv": ",".join(groups),
+                  "image": image_name,
+                }
+              )
 
           if not entries:
             raise SystemExit("No build targets found in config/build_targets.yml")
@@ -135,4 +173,4 @@ jobs:
         run: pip install ansible
 
       - name: Render and build
-        run: ./scripts/build-group-image.sh "${{ matrix.groups_csv }}" "${{ matrix.image }}"
+        run: ./scripts/build-group-image.sh "${{ matrix.groups_csv }}" "${{ matrix.image }}" "${{ matrix.domain }}"

@@ -2,21 +2,36 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "./groups.schema.json",
   "title": "Groups",
-  "description": "Canonical source of truth for all group configurations. Edited via the web UI and read directly by the build pipeline.",
+  "description": "Domain-scoped source of truth for group configurations. Edited via the web UI and read directly by the build pipeline.",
   "$comment": "Cross-field membership check for printer.default_printer against dynamic no_ppd/with_ppd keys is enforced by scripts/validate-group-vars.py.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["groups"],
+  "required": ["domains"],
   "properties": {
-    "groups": {
+    "domains": {
       "type": "array",
-      "description": "List of configuration groups. Each group maps to a build target image.",
+      "description": "List of domains. Groups are isolated per domain.",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name"],
+        "required": ["domain", "groups"],
         "additionalProperties": false,
         "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Owning domain for the enclosed groups.",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "minLength": 1
+          },
+          "groups": {
+            "type": "array",
+            "description": "List of configuration groups for this domain.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["name"],
+              "additionalProperties": false,
+              "properties": {
           "name": {
             "type": "string",
             "description": "Unique group identifier. Used as the image name in the build pipeline.",
@@ -111,6 +126,9 @@
               "hidden": {
                 "type": "boolean",
                 "description": "Whether the SSID is hidden and requires active probing by the client."
+              }
+            }
+          }
               }
             }
           }

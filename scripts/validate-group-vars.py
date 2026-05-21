@@ -76,15 +76,35 @@ def main() -> int:
         print(f"ERROR: {groups_file}: failed to parse YAML: {exc}", file=sys.stderr)
         return 1
 
-    groups = data.get("groups")
-    if not isinstance(groups, list):
-        print(f"ERROR: {groups_file}: top-level 'groups' must be a list", file=sys.stderr)
+    domains = data.get("domains")
+    if not isinstance(domains, list):
+        print(f"ERROR: {groups_file}: top-level 'domains' must be a list", file=sys.stderr)
         return 1
 
     all_errors: list[str] = []
-    for group in groups:
-        name = group.get("name", "<unnamed>")
-        all_errors.extend(validate_group(group, f"{groups_file}[{name}]"))
+    for domain in domains:
+        if not isinstance(domain, dict):
+            all_errors.append(f"{groups_file}: each domain entry must be an object")
+            continue
+
+        domain_name = domain.get("domain", "<unnamed-domain>")
+        groups = domain.get("groups")
+        if not isinstance(groups, list):
+            all_errors.append(
+                f"{groups_file}[domain={domain_name}]: 'groups' must be a list"
+            )
+            continue
+
+        for group in groups:
+            if not isinstance(group, dict):
+                all_errors.append(
+                    f"{groups_file}[domain={domain_name}]: each group entry must be an object"
+                )
+                continue
+            name = group.get("name", "<unnamed>")
+            all_errors.extend(
+                validate_group(group, f"{groups_file}[domain={domain_name}][group={name}]")
+            )
 
     if all_errors:
         for error in all_errors:
