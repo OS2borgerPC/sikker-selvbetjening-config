@@ -54,13 +54,14 @@ jobs:
             item.get("name") for item in groups if isinstance(item, dict) and item.get("name")
           }
 
-          if not isinstance(build_targets, dict):
-            raise SystemExit("config/build_targets.yml must be a mapping with a top-level 'targets' list")
 
-          targets = build_targets.get("targets", [])
+          if not isinstance(build_targets, dict):
+            raise SystemExit("config/build_targets.yml must be a mapping with a top-level 'build_targets' list")
+
+          targets = build_targets.get("build_targets", [])
 
           if not isinstance(targets, list):
-            raise SystemExit("config/build_targets.yml must define a list under 'targets'")
+            raise SystemExit("config/build_targets.yml must define a list under 'build_targets'")
 
           entries = []
           seen_image_names = set()

@@ -1,6 +1,7 @@
-targets:
+build_targets:
   - name: Nordborg
     description: Build image for Nordborg
     groups:
-      - nordborg
+      - groupA
+      - groupB
     image_name: nordborg

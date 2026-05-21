@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Build Targets",
+  "type": "object",
+  "properties": {
+              "description": {
+                "type": "string",
+                "title": "Description",
+                "description": "Optional description of the build target"
+              },
+    "build_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Build Target Name"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "title": "Group Name"
+            },
+            "minItems": 1,
+            "title": "Groups"
+          },
+          "image_name": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "title": "Image Name",
+            "description": "A valid identifier (no spaces or special characters, must start with a letter or underscore)"
+          }
+        },
+        "required": ["name", "groups", "image_name"],
+        "additionalProperties": false
+      },
+      "title": "Build Targets"
+    }
+  },
+  "required": ["build_targets"],
+  "additionalProperties": false
+}
