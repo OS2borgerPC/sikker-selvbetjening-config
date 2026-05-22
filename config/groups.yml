@@ -20,4 +20,3 @@ domains:
                 orientation: portrait
         wifi:
           ssid: nordborg
-    build_targets: []
