@@ -4,7 +4,7 @@ domains:
       - name: new-group
       - name: nordborg
         desktop:
-          background_image_file: config/assets/demo/Smartphone_Hand_shutterstock_300357755.png
+          background_image_file: config/assets/demo/jura.png
         printer:
           default_printer: ricoh_c3010
           with_ppd:
