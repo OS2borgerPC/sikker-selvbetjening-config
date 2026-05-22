@@ -8,7 +8,7 @@ domains:
         printer:
           default_printer: ricoh_c3010
           with_ppd:
-            ricoh_c3010:
+            - name: ricoh_c3010
               display_name: P11567 - Ricoh C3010
               protocol: socket
               ip: 10.1.1.30
