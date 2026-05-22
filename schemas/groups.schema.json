@@ -46,8 +46,8 @@
             "properties": {
               "background_image_file": {
                 "type": "string",
-                "pattern": "^assets/[a-z][a-z0-9_-]*/.+",
-                "description": "Asset path for the desktop background image. Values starting with assets/ are treated as file paths under config/assets."
+                "pattern": "^config/assets/[a-z][a-z0-9_-]*/.+",
+                "description": "Asset path for the desktop background image. Values starting with config/assets/ are treated as file paths under config/assets."
               },
               "shortcuts_in_menu": {
                 "type": "array",
@@ -225,8 +225,8 @@
         },
         "ppd_file": {
           "type": "string",
-          "pattern": "^assets/[a-z][a-z0-9_-]*/.+",
-          "description": "Asset path to a PPD file. Values starting with assets/ are treated as file paths under config/assets."
+          "pattern": "^config/assets/[a-z][a-z0-9_-]*/.+",
+          "description": "Asset path to a PPD file. Values starting with config/assets/ are treated as file paths under config/assets."
         }
       }
     },

@@ -15,7 +15,7 @@
           "options": {
             "widget": "file",
             "accept": "image/*",
-            "assetPrefixTemplate": "assets/{domain}/"
+            "assetPrefixTemplate": "config/assets/{domain}/"
           }
         },
         {
