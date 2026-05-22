@@ -3,7 +3,7 @@
   "$id": "./groups.schema.json",
   "title": "Groups",
   "description": "Domain-scoped source of truth for group configurations. Edited via the web UI and read directly by the build pipeline.",
-  "$comment": "Cross-field membership check for printer.default_printer against dynamic no_ppd/with_ppd keys is enforced by scripts/validate-group-vars.py.",
+  "$comment": "Cross-field membership check for printer.default_printer against dynamic no_ppd/with_ppd keys is enforced by backend custom validation.",
   "type": "object",
   "additionalProperties": false,
   "required": ["domains"],
@@ -46,7 +46,7 @@
             "properties": {
               "background_image_file": {
                 "type": "string",
-                "pattern": "^assets/.+",
+                "pattern": "^assets/[a-z][a-z0-9_-]*/.+",
                 "description": "Asset path for the desktop background image. Values starting with assets/ are treated as file paths under config/assets."
               },
               "shortcuts_in_menu": {
@@ -219,7 +219,7 @@
         },
         "ppd_file": {
           "type": "string",
-          "pattern": "^assets/.+",
+          "pattern": "^assets/[a-z][a-z0-9_-]*/.+",
           "description": "Asset path to a PPD file. Values starting with assets/ are treated as file paths under config/assets."
         }
       }

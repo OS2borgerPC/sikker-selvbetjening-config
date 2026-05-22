@@ -26,7 +26,7 @@ jobs:
       - name: Install validation dependencies
         run: pip install pyyaml check-jsonschema
 
-      - name: Validate group_vars against schema from base image
+      - name: Validate config schemas from base image
         run: bash ./scripts/validate-group-vars-schema-from-image.sh
 
       - name: Validate cross-field constraints

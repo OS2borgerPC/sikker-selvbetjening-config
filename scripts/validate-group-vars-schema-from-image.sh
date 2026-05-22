@@ -6,6 +6,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
 : "${SCHEMAS_PATH_IN_IMAGE:?SCHEMAS_PATH_IN_IMAGE must be set by workflow environment}"
 GROUPS_FILE="${GROUPS_FILE:-$REPO_ROOT/config/groups.yml}"
+BUILD_TARGETS_FILE="${BUILD_TARGETS_FILE:-$REPO_ROOT/config/build_targets.yml}"
 
 if ! command -v podman >/dev/null 2>&1; then
   echo "podman is required to extract schemas from the base image" >&2
@@ -13,7 +14,7 @@ if ! command -v podman >/dev/null 2>&1; then
 fi
 
 if ! command -v check-jsonschema >/dev/null 2>&1; then
-  echo "check-jsonschema is required to validate group_vars" >&2
+  echo "check-jsonschema is required to validate config files" >&2
   exit 1
 fi
 
@@ -45,79 +46,41 @@ podman cp "$container_id:$SCHEMAS_PATH_IN_IMAGE/." "$tmp_dir/schemas"
 podman rm "$container_id" >/dev/null
 container_id=""
 
-schema_file="$tmp_dir/schemas/group-vars.schema.json"
+groups_schema_file="$tmp_dir/schemas/groups.schema.json"
+build_targets_schema_file="$tmp_dir/schemas/build_targets.schema.json"
 
-if [[ ! -f "$schema_file" ]]; then
+if [[ ! -f "$groups_schema_file" ]]; then
   cat >&2 <<EOF
 Expected schema file not found in extracted image content.
 
 Expected path in image:
-- $SCHEMAS_PATH_IN_IMAGE/group-vars.schema.json
+- $SCHEMAS_PATH_IN_IMAGE/groups.schema.json
 EOF
   exit 1
 fi
 
-# Explode groups.yml into per-group JSON files (sections only, no 'name' key)
-# so each can be validated against group-vars.schema.json from the base image.
-python3 - <<'PY' "$GROUPS_FILE" "$tmp_dir/groups"
-import json
-import pathlib
-import sys
+if [[ ! -f "$build_targets_schema_file" ]]; then
+  cat >&2 <<EOF
+Expected schema file not found in extracted image content.
 
-import yaml
-
-groups_file = pathlib.Path(sys.argv[1])
-out_dir = pathlib.Path(sys.argv[2])
-out_dir.mkdir(parents=True, exist_ok=True)
-
-try:
-    data = yaml.safe_load(groups_file.read_text(encoding="utf-8"))
-except Exception as exc:
-    print(f"ERROR: failed to parse {groups_file}: {exc}", file=sys.stderr)
-    raise SystemExit(1)
-
-domains = data.get("domains") if isinstance(data, dict) else None
-if not isinstance(domains, list):
-    print(f"ERROR: {groups_file}: top-level 'domains' must be a list", file=sys.stderr)
-    raise SystemExit(1)
-
-for domain in domains:
-    if not isinstance(domain, dict):
-        print(f"ERROR: domain entry must be an object: {domain}", file=sys.stderr)
-        raise SystemExit(1)
-
-    domain_name = domain.get("domain")
-    if not isinstance(domain_name, str) or not domain_name:
-        print(f"ERROR: domain entry missing valid 'domain': {domain}", file=sys.stderr)
-        raise SystemExit(1)
-
-    groups = domain.get("groups")
-    if not isinstance(groups, list):
-        print(
-            f"ERROR: {groups_file}: domain '{domain_name}' must define 'groups' as a list",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
-
-    for group in groups:
-        name = group.get("name") if isinstance(group, dict) else None
-        if not isinstance(name, str) or not name:
-            print(
-                f"ERROR: group entry missing valid 'name' in domain '{domain_name}': {group}",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
-        sections = {k: v for k, v in group.items() if k != "name"}
-        out_name = f"{domain_name}__{name}.json"
-        (out_dir / out_name).write_text(json.dumps(sections), encoding="utf-8")
-PY
-
-group_section_files=( "$tmp_dir/groups"/*.json )
-
-if [[ ${#group_section_files[@]} -eq 0 ]]; then
-  echo "No groups found in: $GROUPS_FILE" >&2
+Expected path in image:
+- $SCHEMAS_PATH_IN_IMAGE/build_targets.schema.json
+EOF
   exit 1
 fi
 
-echo "Validating ${#group_section_files[@]} group(s) from $GROUPS_FILE against schema from base image"
-check-jsonschema --schemafile "$schema_file" "${group_section_files[@]}"
+if [[ ! -f "$GROUPS_FILE" ]]; then
+  echo "Missing groups config file: $GROUPS_FILE" >&2
+  exit 1
+fi
+
+if [[ ! -f "$BUILD_TARGETS_FILE" ]]; then
+  echo "Missing build targets config file: $BUILD_TARGETS_FILE" >&2
+  exit 1
+fi
+
+echo "Validating $GROUPS_FILE against schema from base image"
+check-jsonschema --schemafile "$groups_schema_file" "$GROUPS_FILE"
+
+echo "Validating $BUILD_TARGETS_FILE against schema from base image"
+check-jsonschema --schemafile "$build_targets_schema_file" "$BUILD_TARGETS_FILE"
