@@ -4,7 +4,7 @@ domains:
       - name: new-group
       - name: nordborg
         desktop:
-          background_image_file: assets/demo/bg-green.jpg
+          background_image_file: assets/demo/maxresdefault.jpg
         printer:
           default_printer: ricoh_c3010
           with_ppd:
@@ -20,3 +20,4 @@ domains:
                 orientation: portrait
         wifi:
           ssid: nordborg
+    build_targets: []
