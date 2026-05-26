@@ -40,18 +40,19 @@ jobs:
           from pathlib import Path
           import yaml
 
-          build_targets = yaml.safe_load(Path("config/build_targets.yml").read_text()) or {}
-          groups_data = yaml.safe_load(Path("config/groups.yml").read_text()) or {}
+          config_data = yaml.safe_load(Path("config/groups.yml").read_text()) or {}
 
-          if not isinstance(groups_data, dict):
+          if not isinstance(config_data, dict):
             raise SystemExit("config/groups.yml must be a mapping with a top-level 'domains' list")
 
-          groups_domains = groups_data.get("domains", [])
-          if not isinstance(groups_domains, list):
+          domains = config_data.get("domains", [])
+          if not isinstance(domains, list):
             raise SystemExit("config/groups.yml must define a list under 'domains'")
 
-          available_groups_by_domain = {}
-          for domain_item in groups_domains:
+          entries = []
+          seen_image_names = set()
+
+          for domain_item in domains:
             if not isinstance(domain_item, dict):
               raise SystemExit("Each domain in config/groups.yml must be a mapping")
 
@@ -65,46 +66,20 @@ jobs:
                 f"Domain '{domain_name}' in config/groups.yml must define a list under 'groups'"
               )
 
-            available_groups_by_domain[domain_name] = {
+            available_group_names = {
               item.get("name") for item in domain_groups if isinstance(item, dict) and item.get("name")
             }
-
-
-          if not isinstance(build_targets, dict):
-            raise SystemExit("config/build_targets.yml must be a mapping with a top-level 'domains' list")
-
-          target_domains = build_targets.get("domains", [])
-          if not isinstance(target_domains, list):
-            raise SystemExit("config/build_targets.yml must define a list under 'domains'")
-
-          entries = []
-          seen_image_names = set()
-
-          for domain_item in target_domains:
-            if not isinstance(domain_item, dict):
-              raise SystemExit("Each domain in config/build_targets.yml must be a mapping")
-
-            domain_name = domain_item.get("domain")
-            if not domain_name:
-              raise SystemExit("Each domain in config/build_targets.yml must define 'domain'")
 
             targets = domain_item.get("build_targets", [])
             if not isinstance(targets, list):
               raise SystemExit(
-                f"Domain '{domain_name}' in config/build_targets.yml must define a list under 'build_targets'"
+                f"Domain '{domain_name}' in config/groups.yml must define a list under 'build_targets'"
               )
-
-            if domain_name not in available_groups_by_domain:
-              raise SystemExit(
-                f"Domain '{domain_name}' in config/build_targets.yml is missing in config/groups.yml"
-              )
-
-            available_group_names = available_groups_by_domain[domain_name]
 
             for item in targets:
               if not isinstance(item, dict):
                 raise SystemExit(
-                  f"Each target in domain '{domain_name}' in config/build_targets.yml must be a mapping"
+                  f"Each target in domain '{domain_name}' in config/groups.yml must be a mapping"
                 )
 
               target_name = item.get("name")
@@ -151,7 +126,7 @@ jobs:
               )
 
           if not entries:
-            raise SystemExit("No build targets found in config/build_targets.yml")
+            raise SystemExit("No build targets found in config/groups.yml")
 
           print(f"matrix={json.dumps({'include': entries})}")
           PY

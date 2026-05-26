@@ -1,8 +1,0 @@
-domains:
-  - domain: demo
-    build_targets:
-      - name: Nordborg
-        description: Build image for Nordborg
-        groups:
-          - nordborg
-        image_name: nordborg

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate cross-field constraints for groups.yml.
+"""Validate cross-field constraints for combined config.
 
 JSON Schema cannot portably enforce that printer.default_printer matches one of
 the dynamic keys under printer.no_ppd or printer.with_ppd. This script enforces
@@ -21,6 +21,10 @@ def _collect_ids(printer_section: dict) -> set[str]:
         bucket = printer_section.get(bucket_name)
         if isinstance(bucket, dict):
             ids.update(str(key) for key in bucket.keys())
+        elif isinstance(bucket, list):
+            for item in bucket:
+                if isinstance(item, dict) and item.get("name"):
+                    ids.add(str(item["name"]))
     return ids
 
 
@@ -55,55 +59,55 @@ def validate_group(group: dict, source: str) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate cross-field rules for groups.yml."
+        description="Validate cross-field rules for combined config."
     )
     parser.add_argument(
-        "--groups-file",
+        "--config-file",
         type=Path,
         default=Path("config/groups.yml"),
-        help="Path to groups.yml (default: config/groups.yml)",
+        help="Path to combined config (default: config/groups.yml)",
     )
     args = parser.parse_args()
 
-    groups_file: Path = args.groups_file
-    if not groups_file.exists():
-        print(f"ERROR: {groups_file}: file does not exist", file=sys.stderr)
+    config_file: Path = args.config_file
+    if not config_file.exists():
+        print(f"ERROR: {config_file}: file does not exist", file=sys.stderr)
         return 1
 
     try:
-        data = yaml.safe_load(groups_file.read_text(encoding="utf-8")) or {}
+        data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
     except Exception as exc:
-        print(f"ERROR: {groups_file}: failed to parse YAML: {exc}", file=sys.stderr)
+        print(f"ERROR: {config_file}: failed to parse YAML: {exc}", file=sys.stderr)
         return 1
 
     domains = data.get("domains")
     if not isinstance(domains, list):
-        print(f"ERROR: {groups_file}: top-level 'domains' must be a list", file=sys.stderr)
+        print(f"ERROR: {config_file}: top-level 'domains' must be a list", file=sys.stderr)
         return 1
 
     all_errors: list[str] = []
     for domain in domains:
         if not isinstance(domain, dict):
-            all_errors.append(f"{groups_file}: each domain entry must be an object")
+            all_errors.append(f"{config_file}: each domain entry must be an object")
             continue
 
         domain_name = domain.get("domain", "<unnamed-domain>")
         groups = domain.get("groups")
         if not isinstance(groups, list):
             all_errors.append(
-                f"{groups_file}[domain={domain_name}]: 'groups' must be a list"
+                f"{config_file}[domain={domain_name}]: 'groups' must be a list"
             )
             continue
 
         for group in groups:
             if not isinstance(group, dict):
                 all_errors.append(
-                    f"{groups_file}[domain={domain_name}]: each group entry must be an object"
+                    f"{config_file}[domain={domain_name}]: each group entry must be an object"
                 )
                 continue
             name = group.get("name", "<unnamed>")
             all_errors.extend(
-                validate_group(group, f"{groups_file}[domain={domain_name}][group={name}]")
+                validate_group(group, f"{config_file}[domain={domain_name}][group={name}]")
             )
 
     if all_errors:
@@ -111,7 +115,7 @@ def main() -> int:
             print(error, file=sys.stderr)
         return 1
 
-    print("groups.yml validation passed")
+    print("combined config validation passed")
     return 0
 
 

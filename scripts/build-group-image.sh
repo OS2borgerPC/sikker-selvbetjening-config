@@ -3,9 +3,11 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Required CI-provided inputs.
 : "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
 : "${IMAGE_REPO:?IMAGE_REPO must be set by workflow environment}"
 
+# Script args: groups CSV, optional image name, required target domain.
 TARGET_GROUPS_CSV="$1"
 FIRST_GROUP="${TARGET_GROUPS_CSV%%,*}"
 IMAGE_NAME="${2:-$FIRST_GROUP}"
@@ -25,6 +27,7 @@ else
   SHA_TAG=""
 fi
 
+# Always publish date-based tags; add commit-based tag when available.
 TAGS=(
   "latest"
   "latest.${DATE_TAG}"
@@ -35,14 +38,17 @@ if [[ -n "$SHA_TAG" ]]; then
   TAGS+=("$SHA_TAG")
 fi
 
+# Recreate build output for this image name from scratch.
 rm -rf "build/${IMAGE_NAME}"
 
+# Render overlay payload from group/domain data.
 ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_domain=${TARGET_DOMAIN}" -e "target_groups=${TARGET_GROUPS_CSV}" -e "build_name=${IMAGE_NAME}"
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
 NORMALIZED_OVERLAY_PAYLOAD="${REPO_ROOT}/build/${IMAGE_NAME}/overlay.normalized.json"
 
+# If a normalized overlay exists, apply it with the helper from BASE_IMAGE.
 if [[ -f "${NORMALIZED_OVERLAY_PAYLOAD}" ]]; then
   echo "Normalized overlay payload (${NORMALIZED_OVERLAY_PAYLOAD}):"
   if command -v jq >/dev/null 2>&1; then
@@ -73,6 +79,7 @@ if [[ -f "${NORMALIZED_OVERLAY_PAYLOAD}" ]]; then
   fi
 fi
 
+# Build final image by layering generated /usr and /etc content on BASE_IMAGE.
 podman build \
   -t ${IMAGE_REF_BASE}:latest \
   -f - . <<EOF
@@ -82,6 +89,7 @@ COPY build/${IMAGE_NAME}/etc/ /etc/
 RUN if command -v dconf >/dev/null 2>&1; then dconf update; else echo "dconf not found; skipping dconf update"; fi
 EOF
 
+# Push latest plus each derived tag.
 for tag in "${TAGS[@]}"; do
   if [[ "$tag" != "latest" ]]; then
     podman tag "${IMAGE_REF_BASE}:latest" "${IMAGE_REF_BASE}:${tag}"
