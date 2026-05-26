@@ -8,8 +8,6 @@ env:
   BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
   # Registry/repository prefix where derived group images are tagged and pushed.
   IMAGE_REPO: ghcr.io/os2borgerpc/sikker-selvbetjening-config
-  # Location of schema files inside BASE_IMAGE.
-  SCHEMAS_PATH_IN_IMAGE: /usr/share/sikker-selvbetjening/schemas
 
 permissions:
   contents: read
@@ -24,13 +22,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install validation dependencies
-        run: pip install pyyaml check-jsonschema
+        run: pip install pyyaml jsonschema
 
-      - name: Validate config schemas from base image
-        run: bash ./scripts/validate-group-vars-schema-from-image.sh
-
-      - name: Validate cross-field constraints
-        run: python3 ./scripts/validate-group-vars.py
+      - name: Validate config schema
+        run: python3 ./scripts/validate-config.py
 
       - name: Discover build targets
         id: discover
@@ -40,30 +35,30 @@ jobs:
           from pathlib import Path
           import yaml
 
-          config_data = yaml.safe_load(Path("config/groups.yml").read_text()) or {}
+          config_data = yaml.safe_load(Path("config/config.yml").read_text()) or {}
 
           if not isinstance(config_data, dict):
-            raise SystemExit("config/groups.yml must be a mapping with a top-level 'domains' list")
+            raise SystemExit("config/config.yml must be a mapping with a top-level 'domains' list")
 
           domains = config_data.get("domains", [])
           if not isinstance(domains, list):
-            raise SystemExit("config/groups.yml must define a list under 'domains'")
+            raise SystemExit("config/config.yml must define a list under 'domains'")
 
           entries = []
           seen_image_names = set()
 
           for domain_item in domains:
             if not isinstance(domain_item, dict):
-              raise SystemExit("Each domain in config/groups.yml must be a mapping")
+              raise SystemExit("Each domain in config/config.yml must be a mapping")
 
             domain_name = domain_item.get("domain")
             if not domain_name:
-              raise SystemExit("Each domain in config/groups.yml must define 'domain'")
+              raise SystemExit("Each domain in config/config.yml must define 'domain'")
 
             domain_groups = domain_item.get("groups", [])
             if not isinstance(domain_groups, list):
               raise SystemExit(
-                f"Domain '{domain_name}' in config/groups.yml must define a list under 'groups'"
+                f"Domain '{domain_name}' in config/config.yml must define a list under 'groups'"
               )
 
             available_group_names = {
@@ -73,13 +68,13 @@ jobs:
             targets = domain_item.get("build_targets", [])
             if not isinstance(targets, list):
               raise SystemExit(
-                f"Domain '{domain_name}' in config/groups.yml must define a list under 'build_targets'"
+                f"Domain '{domain_name}' in config/config.yml must define a list under 'build_targets'"
               )
 
             for item in targets:
               if not isinstance(item, dict):
                 raise SystemExit(
-                  f"Each target in domain '{domain_name}' in config/groups.yml must be a mapping"
+                  f"Each target in domain '{domain_name}' in config/config.yml must be a mapping"
                 )
 
               target_name = item.get("name")
@@ -112,7 +107,7 @@ jobs:
               for group_name in groups:
                 if group_name not in available_group_names:
                   raise SystemExit(
-                    f"Missing group '{group_name}' in domain '{domain_name}' in config/groups.yml for target '{target_name}'"
+                    f"Missing group '{group_name}' in domain '{domain_name}' in config/config.yml for target '{target_name}'"
                   )
 
               entries.append(
@@ -126,7 +121,7 @@ jobs:
               )
 
           if not entries:
-            raise SystemExit("No build targets found in config/groups.yml")
+            raise SystemExit("No build targets found in config/config.yml")
 
           print(f"matrix={json.dumps({'include': entries})}")
           PY

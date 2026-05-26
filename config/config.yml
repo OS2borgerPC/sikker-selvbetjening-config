@@ -6,13 +6,14 @@ domains:
         desktop:
           background_image_file: config/assets/demo/jura.png
         printer:
-          default_printer: ricoh_c3010
-          with_ppd:
+          printers:
             - name: ricoh_c3010
+              kind: with_ppd
               display_name: P11567 - Ricoh C3010
               protocol: socket
               ip: 10.1.1.30
               ppd_file: config/assets/demo/Ricoh-IM_C3010-PDF-Ricoh.ppd
+              is_default: true
               settings:
                 page_size: A4
                 color_mode: rgb

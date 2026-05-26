@@ -22,9 +22,9 @@
       set_fact:
         normalized_target_groups: "{{ target_groups.split(',') if target_groups is string else target_groups }}"
 
-    - name: Load combined config/groups.yml
+    - name: Load combined config/config.yml
       include_vars:
-        file: "../config/groups.yml"
+        file: "../config/config.yml"
         name: all_groups_data
 
     - name: Select domain from combined config
@@ -35,7 +35,7 @@
       assert:
         that:
           - selected_domain.domain is defined
-        fail_msg: "Domain '{{ target_domain }}' not found in config/groups.yml combined config"
+        fail_msg: "Domain '{{ target_domain }}' not found in config/config.yml combined config"
 
     - name: Build group lookup by name within domain
       set_fact:
@@ -45,7 +45,7 @@
       assert:
         that:
           - item in groups_by_name
-        fail_msg: "Group '{{ item }}' not found in domain '{{ target_domain }}' in config/groups.yml combined config"
+        fail_msg: "Group '{{ item }}' not found in domain '{{ target_domain }}' in config/config.yml combined config"
       loop: "{{ normalized_target_groups }}"
 
     - name: Initialize merged overlay sections
