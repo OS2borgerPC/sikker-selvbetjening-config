@@ -49,4 +49,4 @@ jobs:
         run: pip install ansible
 
       - name: Render and build
-        run: ./scripts/build-group-image.sh "${{ matrix.groups_csv }}" "${{ matrix.image }}" "${{ matrix.domain }}"
+        run: ./scripts/build-target-image.sh "${{ matrix.target_name }}" "${{ matrix.image }}" "${{ matrix.domain }}"

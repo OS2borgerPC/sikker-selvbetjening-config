@@ -85,7 +85,7 @@
           "properties": {
             "printers": {
               "type": "array",
-              "description": "List of printers with kind-specific settings and one default printer.",
+              "description": "List of printers with printer-type-specific settings and one default printer.",
               "minItems": 1,
               "items": {
                 "$ref": "#/$defs/printer_entry"
@@ -181,9 +181,9 @@
       "type": "object",
       "description": "Printer entry that does not require a PPD file.",
       "additionalProperties": false,
-      "required": ["kind", "name", "display_name", "ip", "is_default"],
+      "required": ["printer-type", "name", "display_name", "ip", "is_default"],
       "properties": {
-        "kind": {
+        "printer-type": {
           "const": "no_ppd"
         },
         "name": {
@@ -224,9 +224,9 @@
       "type": "object",
       "description": "Printer entry that requires a PPD file.",
       "additionalProperties": false,
-      "required": ["kind", "name", "display_name", "ip", "ppd_file", "is_default"],
+      "required": ["printer-type", "name", "display_name", "ip", "ppd_file", "is_default"],
       "properties": {
-        "kind": {
+        "printer-type": {
           "const": "with_ppd"
         },
         "name": {
@@ -272,9 +272,9 @@
       "type": "object",
       "description": "Princh printer entry.",
       "additionalProperties": false,
-      "required": ["kind", "name", "display_name", "id", "is_default"],
+      "required": ["printer-type", "name", "display_name", "id", "is_default"],
       "properties": {
-        "kind": {
+        "printer-type": {
           "const": "princh"
         },
         "name": {

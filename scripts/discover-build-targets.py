@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-"""Discover build targets from combined config and emit GitHub matrix output."""
+"""Build matrix discovery helper for GitHub Actions.
+
+Centralize matrix generation in one CI-focused helper.
+
+What it does:
+- Reads the config file (default: config/config.yml).
+- Extracts all build targets across domains and converts them to matrix entries.
+- Validates two semantic rules needed by the build pipeline:
+    1) image_name must be unique per domain
+    2) each group name listed in build_targets.groups must match a groups.name
+       entry in the same domain
+- Prints a single line in GitHub output format:
+    matrix={"include": [...]}.
+"""
 
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from pathlib import Path
@@ -11,19 +23,11 @@ from pathlib import Path
 import yaml
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Discover build targets from combined config."
-    )
-    parser.add_argument(
-        "--config-file",
-        type=Path,
-        default=Path("config/config.yml"),
-        help="Path to combined config (default: config/config.yml)",
-    )
-    args = parser.parse_args()
+CONFIG_FILE = Path("config/config.yml")
 
-    config_file: Path = args.config_file
+
+def main() -> int:
+    config_file = CONFIG_FILE
     if not config_file.exists():
         print(f"ERROR: {config_file}: file does not exist", file=sys.stderr)
         return 1
@@ -69,7 +73,7 @@ def main() -> int:
                     "name": target_name,
                     "description": item.get("description"),
                     "domain": domain_name,
-                    "groups_csv": ",".join(groups),
+                    "target_name": target_name,
                     "image": image_name,
                 }
             )

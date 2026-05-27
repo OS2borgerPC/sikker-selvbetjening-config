@@ -1,16 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Build one target-specific image from the combined config.
+#
+# The combined config comes from the selected build target's group list:
+# - CI discovers a build target in config/config.yml
+# - this script passes the build target name and domain to Ansible
+# - the playbook looks up that build target and merges the attached groups
+#   (in order) into one normalized overlay payload used for image build
+#
+# Inputs:
+# - arg1: build target name
+# - arg2: image name (required)
+# - arg3: target domain
+# - env: BASE_IMAGE and IMAGE_REPO
+#
+# Flow:
+# 1) render normalized overlay with Ansible
+# 2) apply overlay helper from BASE_IMAGE into build/
+# 3) build derived image and push latest/date/sha tags
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Required CI-provided inputs.
 : "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
 : "${IMAGE_REPO:?IMAGE_REPO must be set by workflow environment}"
 
-# Script args: groups CSV, optional image name, required target domain.
-TARGET_GROUPS_CSV="$1"
-FIRST_GROUP="${TARGET_GROUPS_CSV%%,*}"
-IMAGE_NAME="${2:-$FIRST_GROUP}"
+# Script args: build target name, required image name, required target domain.
+TARGET_NAME="$1"
+IMAGE_NAME="${2:?image name argument is required}"
 TARGET_DOMAIN="${3:?target domain argument is required}"
 IMAGE_REF_BASE="${IMAGE_REPO}/${TARGET_DOMAIN}/${IMAGE_NAME}"
 export IMAGE_REPO
@@ -19,10 +37,9 @@ DATE_TAG="$(date -u +%Y%m%d)"
 echo "Using BASE_IMAGE=${BASE_IMAGE}"
 echo "Using IMAGE_REPO=${IMAGE_REPO}"
 
+# Derive an immutable commit tag for traceability from CI-provided GITHUB_SHA.
 if [[ -n "${GITHUB_SHA:-}" ]]; then
   SHA_TAG="sha-${GITHUB_SHA:0:7}"
-elif command -v git >/dev/null 2>&1 && git rev-parse --short HEAD >/dev/null 2>&1; then
-  SHA_TAG="sha-$(git rev-parse --short HEAD)"
 else
   SHA_TAG=""
 fi
@@ -41,20 +58,20 @@ fi
 # Recreate build output for this image name from scratch.
 rm -rf "build/${IMAGE_NAME}"
 
-# Render overlay payload from group/domain data.
-ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_domain=${TARGET_DOMAIN}" -e "target_groups=${TARGET_GROUPS_CSV}" -e "build_name=${IMAGE_NAME}"
+# Render overlay payload from the selected build target.
+ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_domain=${TARGET_DOMAIN}" -e "target_name=${TARGET_NAME}" -e "build_name=${IMAGE_NAME}"
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
-NORMALIZED_OVERLAY_PAYLOAD="${REPO_ROOT}/build/${IMAGE_NAME}/overlay.normalized.json"
+CONFIGURATION_OVERLAY="${REPO_ROOT}/build/${IMAGE_NAME}/configuration-overlay.normalized.json"
 
-# If a normalized overlay exists, apply it with the helper from BASE_IMAGE.
-if [[ -f "${NORMALIZED_OVERLAY_PAYLOAD}" ]]; then
-  echo "Normalized overlay payload (${NORMALIZED_OVERLAY_PAYLOAD}):"
+# If a configuration overlay exists, apply it with the helper from BASE_IMAGE.
+if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
+  echo "Configuration overlay payload (${CONFIGURATION_OVERLAY}):"
   if command -v jq >/dev/null 2>&1; then
-    jq . "${NORMALIZED_OVERLAY_PAYLOAD}"
+    jq . "${CONFIGURATION_OVERLAY}"
   else
-    cat "${NORMALIZED_OVERLAY_PAYLOAD}"
+    cat "${CONFIGURATION_OVERLAY}"
   fi
 
   podman run --rm \
@@ -62,7 +79,7 @@ if [[ -f "${NORMALIZED_OVERLAY_PAYLOAD}" ]]; then
     -v "${REPO_ROOT}/build/${IMAGE_NAME}:/work:Z" \
     "${BASE_IMAGE}" \
     /usr/libexec/sikker-apply-overlay \
-    /work/overlay.normalized.json \
+    /work/configuration-overlay.normalized.json \
     /assets \
     /work
 

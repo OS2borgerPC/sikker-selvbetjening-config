@@ -1,3 +1,17 @@
+# Render one normalized configuration overlay payload for a selected build target.
+#
+# This playbook is called by the build script with:
+# - target_domain: the domain containing the selected build target
+# - target_name: the selected build target name
+# - build_name: the output folder name under build/
+#
+# What it does:
+# 1) load the combined config from config/config.yml
+# 2) resolve the requested domain and build target
+# 3) resolve the ordered groups attached to that build target
+# 4) merge the selected groups in order into one combined configuration overlay
+# 5) write build/<build_name>/configuration-overlay.normalized.json for later image build
+
 - name: Render config overlay per build target
   hosts: localhost
   connection: local
@@ -11,16 +25,12 @@
           - target_domain | length > 0
         fail_msg: "target_domain must be provided"
 
-    - name: Validate target_groups input
+    - name: Validate target_name input
       assert:
         that:
-          - target_groups is defined
-          - target_groups | length > 0
-        fail_msg: "target_groups must be provided"
-
-    - name: Normalize target groups list
-      set_fact:
-        normalized_target_groups: "{{ target_groups.split(',') if target_groups is string else target_groups }}"
+          - target_name is defined
+          - target_name | length > 0
+        fail_msg: "target_name must be provided"
 
     - name: Load combined config/config.yml
       include_vars:
@@ -37,6 +47,20 @@
           - selected_domain.domain is defined
         fail_msg: "Domain '{{ target_domain }}' not found in config/config.yml combined config"
 
+    - name: Select build target from combined config
+      set_fact:
+        selected_build_target: "{{ (selected_domain.build_targets | default([]) | selectattr('name', 'equalto', target_name) | list | first) | default({}) }}"
+
+    - name: Validate selected build target exists in combined config
+      assert:
+        that:
+          - selected_build_target.name is defined
+        fail_msg: "Build target '{{ target_name }}' not found in domain '{{ target_domain }}' in config/config.yml"
+
+    - name: Set ordered target groups from selected build target
+      set_fact:
+        normalized_target_groups: "{{ selected_build_target.groups }}"
+
     - name: Build group lookup by name within domain
       set_fact:
         groups_by_name: "{{ dict((selected_domain.groups | default([])) | map(attribute='name') | zip((selected_domain.groups | default([])))) }}"
@@ -48,14 +72,14 @@
         fail_msg: "Group '{{ item }}' not found in domain '{{ target_domain }}' in config/config.yml combined config"
       loop: "{{ normalized_target_groups }}"
 
-    - name: Initialize merged overlay sections
+    - name: Initialize merged configuration overlay sections
       set_fact:
-        overlay_sections: {}
+        configuration_overlay_sections: {}
 
-    - name: Merge overlay sections in group order
+    - name: Merge configuration overlay sections in group order
       set_fact:
-        overlay_sections: >-
-          {{ overlay_sections | combine(
+        configuration_overlay_sections: >-
+          {{ configuration_overlay_sections | combine(
                groups_by_name[item] | dict2items | rejectattr('key', 'equalto', 'name') | items2dict,
                recursive=True) }}
       loop: "{{ normalized_target_groups }}"
@@ -64,66 +88,6 @@
       set_fact:
         build_root: "{{ playbook_dir }}/../build/{{ build_name }}"
 
-    - name: Normalize overlay data and validate assets path values
-      shell: |
-        python3 - <<'PY'
-        import json
-        import os
-        import posixpath
-        import sys
-
-        data = json.loads(os.environ["OVERLAY_JSON"])
-
-        def normalize(value):
-            if isinstance(value, dict):
-                normalized = {}
-                for key, subvalue in value.items():
-                    normalized_value = normalize(subvalue)
-                    normalized[key] = normalized_value
-                return normalized
-
-            if isinstance(value, list):
-                return [normalize(item) for item in value]
-
-            if isinstance(value, str) and value.startswith("assets/"):
-                rel_path = posixpath.normpath(value[7:])
-
-                if rel_path in (".", "") or rel_path.startswith("../") or "/../" in rel_path:
-                    raise ValueError(f"Asset path escapes assets root: {value}")
-
-                return f"assets/{rel_path}"
-
-            return value
-
-        try:
-            normalized_overlay = normalize(data)
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            raise SystemExit(1)
-
-        print(
-            json.dumps(
-                {
-                    "rendered_overlay_sections": normalized_overlay,
-                }
-            )
-        )
-        PY
-      args:
-        executable: /bin/bash
-      environment:
-        OVERLAY_JSON: "{{ overlay_sections | to_json }}"
-      register: overlay_processing
-      changed_when: false
-
-    - name: Parse normalized overlay payload
-      set_fact:
-        overlay_processing_data: "{{ overlay_processing.stdout | from_json }}"
-
-    - name: Set rendered overlay sections
-      set_fact:
-        rendered_overlay_sections: "{{ overlay_processing_data.rendered_overlay_sections }}"
-
   tasks:
     - name: Create build root
       file:
@@ -131,7 +95,7 @@
         state: directory
         recurse: true
 
-    - name: Emit normalized overlay payload for base image helpers
+    - name: Emit normalized configuration overlay payload for base image helpers
       copy:
-        dest: "{{ build_root }}/overlay.normalized.json"
-        content: "{{ rendered_overlay_sections | to_nice_json }}\n"
+        dest: "{{ build_root }}/configuration-overlay.normalized.json"
+        content: "{{ configuration_overlay_sections | to_nice_json }}\n"
