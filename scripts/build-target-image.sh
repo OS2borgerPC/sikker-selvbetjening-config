@@ -78,7 +78,7 @@ if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
     -v "${REPO_ROOT}/config/assets:/assets:Z,ro" \
     -v "${REPO_ROOT}/build/${IMAGE_NAME}:/work:Z" \
     "${BASE_IMAGE}" \
-    /usr/libexec/sikker-apply-overlay \
+    /usr/libexec/sikker-create-overlay \
     /work/configuration-overlay.normalized.json \
     /assets \
     /work
