@@ -1,0 +1,72 @@
+{
+  "build_targets": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/name"
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/description"
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/groups"
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/image_name"
+      }
+    ]
+  },
+  "groups": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/name"
+      },
+      {
+        "type": "Group",
+        "label": "Desktop Section",
+        "elements": [
+          {
+            "type": "Control",
+            "scope": "#/properties/desktop/properties/background_image_file",
+            "options": {
+              "widget": "file",
+              "accept": "image/*",
+              "assetPrefixTemplate": "config/assets/{domain}/"
+            }
+          },
+          {
+            "type": "Control",
+            "scope": "#/properties/desktop/properties/shortcuts_in_menu"
+          }
+        ]
+      },
+      {
+        "type": "Group",
+        "label": "Printer Section",
+        "elements": [
+          {
+            "type": "Control",
+            "scope": "#/properties/printer/properties/printers"
+          }
+        ]
+      },
+      {
+        "type": "Group",
+        "label": "Wi-Fi Section",
+        "elements": [
+          {
+            "type": "Control",
+            "scope": "#/properties/wifi",
+            "label": false
+          }
+        ]
+      }
+    ]
+  }
+}
