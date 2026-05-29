@@ -48,7 +48,7 @@ def validate_schema(config_data: dict, schema_file: Path, source: Path) -> list[
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate combined config against local JSON Schema."
+        description="Validate combined config against JSON Schema."
     )
     parser.add_argument(
         "--config-file",
@@ -59,8 +59,8 @@ def main() -> int:
     parser.add_argument(
         "--schema-file",
         type=Path,
-        default=Path("schemas/schema.json"),
-        help="Path to local schema.json (default: schemas/schema.json)",
+        required=True,
+        help="Path to schema.json (for CI this is exported from BASE_IMAGE)",
     )
     args = parser.parse_args()
 

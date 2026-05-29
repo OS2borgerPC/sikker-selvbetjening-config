@@ -28,8 +28,6 @@ The repository is responsible for:
 	- Configuration input for targets and environments
 - playbooks/
 	- Rendering and operational playbooks
-- schemas/
-	- JSON schema definitions used for configuration validation
 - scripts/
 	- Local and CI helper scripts for validation and image builds
 - templates/

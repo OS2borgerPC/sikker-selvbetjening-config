@@ -24,8 +24,25 @@ jobs:
       - name: Install validation dependencies
         run: pip install pyyaml jsonschema
 
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Export schema from base image
+        run: |
+          mkdir -p .ci
+          podman run --rm "${BASE_IMAGE}" sh -lc '
+            set -eu
+            schema_path="$(find / -type f -name schema.json 2>/dev/null | head -n 1)"
+            if [ -z "${schema_path}" ]; then
+              echo "ERROR: no schema.json found in ${BASE_IMAGE}" >&2
+              exit 1
+            fi
+            echo "Using schema path: ${schema_path}" >&2
+            cat "${schema_path}"
+          ' > .ci/schema.json
+
       - name: Validate config schema
-        run: python3 ./scripts/validate-config.py
+        run: python3 ./scripts/validate-config.py --schema-file .ci/schema.json
 
       - name: Discover build targets
         id: discover
