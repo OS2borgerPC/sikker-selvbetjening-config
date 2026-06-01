@@ -6,6 +6,8 @@ on:
 env:
   # Base container image used for schema validation and as build FROM image.
   BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
+  # Absolute path in BASE_IMAGE where validation schemas are stored.
+  BASE_IMAGE_SCHEMA_PATH: /usr/share/sikker-selvbetjening/schemas/schema.json
   # Registry/repository prefix where derived group images are tagged and pushed.
   IMAGE_REPO: ghcr.io/os2borgerpc/sikker-selvbetjening-config
 
@@ -29,20 +31,37 @@ jobs:
 
       - name: Export schema from base image
         run: |
-          mkdir -p .ci
-          podman run --rm "${BASE_IMAGE}" sh -lc '
-            set -eu
-            schema_path="$(find / -type f -name schema.json 2>/dev/null | head -n 1)"
-            if [ -z "${schema_path}" ]; then
-              echo "ERROR: no schema.json found in ${BASE_IMAGE}" >&2
-              exit 1
-            fi
-            echo "Using schema path: ${schema_path}" >&2
-            cat "${schema_path}"
-          ' > .ci/schema.json
+          set -euo pipefail
+          container_id="$(podman create "$BASE_IMAGE")"
+          cleanup() {
+            podman rm -f "$container_id" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
 
-      - name: Validate config schema
-        run: python3 ./scripts/validate-config.py --schema-file .ci/schema.json
+          mkdir -p .ci
+          podman cp "${container_id}:${BASE_IMAGE_SCHEMA_PATH}" .ci/schema.json
+
+
+      - name: Validate config.yml
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import pathlib
+
+          import jsonschema
+          import yaml
+
+          schema_path = pathlib.Path('.ci/schema.json')
+          config_path = pathlib.Path('config/config.yml')
+
+          schema = json.loads(schema_path.read_text(encoding='utf-8'))
+          config = yaml.safe_load(config_path.read_text(encoding='utf-8'))
+
+          jsonschema.validate(instance=config, schema=schema)
+          print(f"Validation passed for {config_path} against {schema_path}")
+          PY
+     
 
       - name: Discover build targets
         id: discover
