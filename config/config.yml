@@ -20,7 +20,7 @@ domains:
                 duplex: none
                 orientation: portrait
         wifi:
-          ssid: nordborg
+          ssid: borgernet
     build_targets:
       - name: Nordborg
         description: Build image for Nordborg
