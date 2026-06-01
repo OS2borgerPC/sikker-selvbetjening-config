@@ -16,11 +16,27 @@ The repository is responsible for:
 
 ## How it works
 
-1. Build targets are selected from the inventory configuration.
-2. Target configuration is loaded and merged in deterministic order.
-3. The merged configuration is normalized and written as overlay payload.
-4. Base-image overlay helpers transform payload data into concrete filesystem changes.
-5. A derived image is built from the base image and pushed with standard tags.
+```mermaid
+flowchart LR
+	A[Build] --> B[Export schema from base image]
+	B --> C[Validate config/config.yml]
+	C -->|valid| D[Discover build targets]
+	C -->|invalid| X[Fail pipeline]
+	D --> E[Merge group config layers in order]
+	E --> F[Render target overlay]
+	F --> G[Apply base-image overlay helpers]
+	G --> H[Build derived image]
+	H --> I[Tag and push image]
+```
+
+1. Build orchestration runs in .github/workflows/build.yml.
+2. Schema export reads BASE_IMAGE at BASE_IMAGE_SCHEMA_PATH and writes .ci/schema.json (.github/workflows/build.yml).
+3. Config validation checks config/config.yml against .ci/schema.json (.github/workflows/build.yml).
+4. Build target discovery reads config/config.yml (scripts/discover-build-targets.py).
+5. Group configuration layers are joined in their respective order using the selected target definition from config/config.yml (playbooks/render-host-overlays.yml).
+6. The merged configuration is normalized and written to build/<image>/configuration-overlay.normalized.json (playbooks/render-host-overlays.yml).
+7. Base-image overlay helpers transform data into concrete filesystem changes using config/assets/* and build/<image>/* (scripts/build-target-image.sh).
+8. The derived image is built, tagged, and pushed (scripts/build-target-image.sh).
 
 ## Repository structure
 
