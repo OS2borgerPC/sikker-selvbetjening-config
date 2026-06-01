@@ -33,8 +33,8 @@ flowchart LR
 2. Schema export reads BASE_IMAGE at BASE_IMAGE_SCHEMA_PATH and writes .ci/schema.json (.github/workflows/build.yml).
 3. Config validation checks config/config.yml against .ci/schema.json (.github/workflows/build.yml).
 4. Build target discovery reads config/config.yml (scripts/discover-build-targets.py).
-5. Group configuration layers are joined in their respective order using the selected target definition from config/config.yml (playbooks/render-host-overlays.yml).
-6. The merged configuration is normalized and written to build/<image>/configuration-overlay.normalized.json (playbooks/render-host-overlays.yml).
+5. Group configuration layers are combined in their respective order using the selected target definition from config/config.yml (playbooks/render-host-overlays.yml).
+6. Emit combined configuration for base-image playbooks (playbooks/render-host-overlays.yml).
 7. Base-image overlay helpers transform data into concrete filesystem changes using config/assets/* and build/<image>/* (scripts/build-target-image.sh).
 8. The derived image is built, tagged, and pushed (scripts/build-target-image.sh).
 

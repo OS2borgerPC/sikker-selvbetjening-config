@@ -95,7 +95,7 @@
         state: directory
         recurse: true
 
-    - name: Emit normalized configuration overlay payload for base image helpers
+    - name: Emit combined configuration pr. build taget to be consumed by base-image playbooks
       copy:
-        dest: "{{ build_root }}/configuration-overlay.normalized.json"
+        dest: "{{ build_root }}/configuration-overlay.json"
         content: "{{ configuration_overlay_sections | to_nice_json }}\n"

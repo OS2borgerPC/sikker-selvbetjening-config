@@ -7,7 +7,7 @@ set -euo pipefail
 # - CI discovers a build target in config/config.yml
 # - this script passes the build target name and domain to Ansible
 # - the playbook looks up that build target and merges the attached groups
-#   (in order) into one normalized overlay payload used for image build
+#   (in order) into a conbined configuration used for image build
 #
 # Inputs:
 # - arg1: build target name
@@ -16,8 +16,8 @@ set -euo pipefail
 # - env: BASE_IMAGE and IMAGE_REPO
 #
 # Flow:
-# 1) render normalized overlay with Ansible
-# 2) apply overlay helper from BASE_IMAGE into build/
+# 1) render combined configuration with Ansible
+# 2) apply playbooks from BASE_IMAGE into build/
 # 3) build derived image and push latest/date/sha tags
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -63,9 +63,9 @@ ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_dom
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
-CONFIGURATION_OVERLAY="${REPO_ROOT}/build/${IMAGE_NAME}/configuration-overlay.normalized.json"
+CONFIGURATION_OVERLAY="${REPO_ROOT}/build/${IMAGE_NAME}/configuration-overlay.json"
 
-# If a configuration overlay exists, apply it with the helper from BASE_IMAGE.
+# If a configuration overlay exists, apply it with the ansible playbooks from BASE_IMAGE.
 if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
   echo "Configuration overlay payload (${CONFIGURATION_OVERLAY}):"
   if command -v jq >/dev/null 2>&1; then
@@ -79,7 +79,7 @@ if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
     -v "${REPO_ROOT}/build/${IMAGE_NAME}:/work:Z" \
     "${BASE_IMAGE}" \
     /usr/libexec/sikker-create-overlay \
-    /work/configuration-overlay.normalized.json \
+    /work/configuration-overlay.json \
     /assets \
     /work
 
