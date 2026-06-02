@@ -18,10 +18,10 @@ domains:
                 color_mode: rgb
                 duplex: none
                 orientation: portrait
-        wifi:
-          ssid: borgernet   # Required
-          psk: ""           # Optional (can be left empty)
-          hidden: false     # Optional (can be left empty)
+        # wifi:
+        #   ssid: borgernet   # Required
+        #   psk: ""           # Optional (can be left empty)
+        #   hidden: false     # Optional (can be left empty)
     build_targets:
       - name: Nordborg
         description: Build image for Nordborg
