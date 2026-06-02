@@ -22,6 +22,7 @@ domains:
           ssid: borgernet   # Required
           psk: ""           # Optional (can be left empty)
           hidden: false     # Optional (can be left empty)
+          enabled: false     # Optional (can be left empty)
     build_targets:
       - name: Nordborg
         description: Build image for Nordborg
