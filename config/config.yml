@@ -1,7 +1,6 @@
 domains:
   - domain: demo
     groups:
-      - name: new-group
       - name: nordborg
         desktop:
           background_image_file: config/assets/demo/jura.png
@@ -20,7 +19,9 @@ domains:
                 duplex: none
                 orientation: portrait
         wifi:
-          ssid: borgernet
+          ssid: borgernet   # Required
+          psk: ""           # Optional (can be left empty)
+          hidden: false     # Optional (can be left empty)
     build_targets:
       - name: Nordborg
         description: Build image for Nordborg
