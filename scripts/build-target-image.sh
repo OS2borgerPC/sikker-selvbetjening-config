@@ -64,6 +64,15 @@ ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_dom
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
 CONFIGURATION_OVERLAY="${REPO_ROOT}/build/${IMAGE_NAME}/configuration-overlay.json"
+POST_STEPS_FILE="${REPO_ROOT}/build/${IMAGE_NAME}/post-steps.json"
+
+# Seed a default post-step payload. sikker-create-overlay may append steps to this file.
+cat > "${POST_STEPS_FILE}" <<EOF
+{
+  "version": 1,
+  "steps": []
+}
+EOF
 
 # If a configuration overlay exists, apply it with the ansible playbooks from BASE_IMAGE.
 if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
@@ -84,6 +93,26 @@ if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
     /work
 fi
 
+POST_STEPS_DOCKER_SNIPPET=""
+if [[ -f "${POST_STEPS_FILE}" ]]; then
+  echo "Post-step metadata payload (${POST_STEPS_FILE}):"
+  RUN_POST_STEPS="yes"
+  if command -v jq >/dev/null 2>&1; then
+    jq . "${POST_STEPS_FILE}"
+    if ! jq -e '.steps | type == "array" and length > 0' "${POST_STEPS_FILE}" >/dev/null; then
+      RUN_POST_STEPS="no"
+    fi
+  else
+    cat "${POST_STEPS_FILE}"
+  fi
+
+  if [[ "${RUN_POST_STEPS}" == "yes" ]]; then
+    POST_STEPS_DOCKER_SNIPPET=$'COPY build/'"${IMAGE_NAME}"$'/post-steps.json /tmp/post-steps.json\nRUN /usr/libexec/sikker-run-post-steps /tmp/post-steps.json && rm -f /tmp/post-steps.json'
+  else
+    echo "No post steps defined in post-steps.json; skipping post-step execution."
+  fi
+fi
+
 # Build final image by layering generated /usr and /etc content on BASE_IMAGE.
 podman build \
   -t ${IMAGE_REF_BASE}:latest \
@@ -91,6 +120,7 @@ podman build \
 FROM ${BASE_IMAGE}
 COPY build/${IMAGE_NAME}/usr/ /usr/
 COPY build/${IMAGE_NAME}/etc/ /etc/
+${POST_STEPS_DOCKER_SNIPPET}
 EOF
 
 # Push latest plus each derived tag.
