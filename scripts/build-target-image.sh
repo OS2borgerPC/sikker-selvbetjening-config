@@ -82,18 +82,6 @@ if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
     /work/configuration-overlay.json \
     /assets \
     /work
-
-  echo "Post-helper debug: listing generated desktop artifacts"
-  ls -la "${REPO_ROOT}/build/${IMAGE_NAME}/usr/share/backgrounds/sikker-selvbetjening" || true
-  ls -la "${REPO_ROOT}/build/${IMAGE_NAME}/etc/dconf/db/local.d" || true
-
-  DCONF_DEFAULTS_FILE="${REPO_ROOT}/build/${IMAGE_NAME}/etc/dconf/db/local.d/03-desktop-background"
-  if [[ -f "${DCONF_DEFAULTS_FILE}" ]]; then
-    echo "Post-helper debug: found ${DCONF_DEFAULTS_FILE}"
-    cat "${DCONF_DEFAULTS_FILE}"
-  else
-    echo "Post-helper debug: missing ${DCONF_DEFAULTS_FILE}"
-  fi
 fi
 
 # Build final image by layering generated /usr and /etc content on BASE_IMAGE.
@@ -103,7 +91,6 @@ podman build \
 FROM ${BASE_IMAGE}
 COPY build/${IMAGE_NAME}/usr/ /usr/
 COPY build/${IMAGE_NAME}/etc/ /etc/
-RUN if command -v dconf >/dev/null 2>&1; then dconf update; else echo "dconf not found; skipping dconf update"; fi
 EOF
 
 # Push latest plus each derived tag.
