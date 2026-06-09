@@ -1,4 +1,4 @@
-name: Build group config images
+name: Build device group images
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ env:
   BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
   # Absolute path in BASE_IMAGE where validation schemas are stored.
   BASE_IMAGE_SCHEMA_PATH: /usr/share/sikker-selvbetjening/schemas/schema.json
-  # Registry/repository prefix where derived group images are tagged and pushed.
+  # Registry/repository prefix where derived device group images are tagged and pushed.
   IMAGE_REPO: ghcr.io/os2borgerpc/sikker-selvbetjening-config
 
 permissions:
@@ -63,10 +63,10 @@ jobs:
           PY
      
 
-      - name: Discover build targets
+      - name: Discover device groups
         id: discover
         run: |
-          python3 ./scripts/discover-build-targets.py >> "$GITHUB_OUTPUT"
+          python3 ./scripts/discover-device-groups.py >> "$GITHUB_OUTPUT"
 
   build:
     needs: prepare
@@ -85,4 +85,4 @@ jobs:
         run: pip install ansible
 
       - name: Render and build
-        run: ./scripts/build-target-image.sh "${{ matrix.target_name }}" "${{ matrix.image }}" "${{ matrix.domain }}"
+        run: ./scripts/build-device-group-image.sh "${{ matrix.device_group_name }}" "${{ matrix.image }}" "${{ matrix.domain }}"

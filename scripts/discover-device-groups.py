@@ -5,10 +5,10 @@ Centralize matrix generation in one CI-focused helper.
 
 What it does:
 - Reads the config file (default: config/config.yml).
-- Extracts all build targets across domains and converts them to matrix entries.
+- Extracts all device groups across domains and converts them to matrix entries.
 - Validates two semantic rules needed by the build pipeline:
     1) image_name must be unique per domain
-    2) each group name listed in build_targets.groups must match a groups.name
+    2) each policy name listed in device_groups.policies must match a policies.name
        entry in the same domain
 - Prints a single line in GitHub output format:
     matrix={"include": [...]}.
@@ -43,11 +43,11 @@ def main() -> int:
 
     for domain_item in config_data["domains"]:
         domain_name = domain_item["domain"]
-        available_group_names = {group["name"] for group in domain_item["groups"]}
+        available_policies_names = {policy["name"] for policy in domain_item["policies"]}
 
-        for item in domain_item["build_targets"]:
-            target_name = item["name"]
-            groups = item["groups"]
+        for item in domain_item["device_groups"]:
+            device_group_name = item["name"]
+            policies = item["policies"]
             image_name = item["image_name"]
 
             image_key = (domain_name, image_name)
@@ -59,27 +59,27 @@ def main() -> int:
                 return 1
             seen_image_names.add(image_key)
 
-            missing_groups = [group for group in groups if group not in available_group_names]
-            if missing_groups:
-                missing_csv = ", ".join(missing_groups)
+            missing_policies = [policy for policy in policies if policy not in available_policy_names]
+            if missing_policies:
+                missing_csv = ", ".join(missing_policies)
                 print(
-                    f"Missing group(s) {missing_csv} in domain '{domain_name}' for target '{target_name}'",
+                    f"Missing policy(s) {missing_csv} in domain '{domain_name}' for device_group '{device_group_name}'",
                     file=sys.stderr,
                 )
                 return 1
 
             entries.append(
                 {
-                    "name": target_name,
+                    "name": device_group_name,
                     "description": item.get("description"),
                     "domain": domain_name,
-                    "target_name": target_name,
+                    "device_group_name": device_group_name,
                     "image": image_name,
                 }
             )
 
     if not entries:
-        print("No build targets found in config/config.yml", file=sys.stderr)
+        print("No device groups found in config/config.yml", file=sys.stderr)
         return 1
 
     print(f"matrix={json.dumps({'include': entries})}")

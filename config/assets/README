@@ -1,4 +1,0 @@
-# Place wallpaper image files here.
-# Expected files referenced by group_vars:
-#   bg-green.jpg  (used by group: broager)
-#   bg-blue.jpg   (used by group: nordborg)

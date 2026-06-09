@@ -1,88 +1,88 @@
-# Render one normalized configuration overlay payload for a selected build target.
+# Render one normalized configuration overlay payload for a selected device group.
 #
 # This playbook is called by the build script with:
-# - target_domain: the domain containing the selected build target
-# - target_name: the selected build target name
+# - device_group_domain: the domain containing the selected device group
+# - device_group_name: the selected device group name
 # - build_name: the output folder name under build/
 #
 # What it does:
 # 1) load the combined config from config/config.yml
-# 2) resolve the requested domain and build target
-# 3) resolve the ordered groups attached to that build target
-# 4) merge the selected groups in order into one combined configuration overlay
+# 2) resolve the requested domain and device group
+# 3) resolve the ordered policies attached to that device group
+# 4) merge the selected policies in order into one combined configuration overlay
 # 5) write build/<build_name>/configuration-overlay.normalized.json for later image build
 
-- name: Render config overlay per build target
+- name: Render config overlay per device group
   hosts: localhost
   connection: local
   gather_facts: false
 
   pre_tasks:
-    - name: Validate target_domain input
+    - name: Validate device group domain input
       assert:
         that:
-          - target_domain is defined
-          - target_domain | length > 0
-        fail_msg: "target_domain must be provided"
+          - device_group_domain is defined
+          - device_group_domain | length > 0
+        fail_msg: "device_group_domain must be provided"
 
-    - name: Validate target_name input
+    - name: Validate device_group_name input
       assert:
         that:
-          - target_name is defined
-          - target_name | length > 0
-        fail_msg: "target_name must be provided"
+          - device_group_name is defined
+          - device_group_name | length > 0
+        fail_msg: "device_group_name must be provided"
 
     - name: Load combined config/config.yml
       include_vars:
         file: "../config/config.yml"
-        name: all_groups_data
+        name: all_config_data
 
     - name: Select domain from combined config
       set_fact:
-        selected_domain: "{{ (all_groups_data.domains | default([]) | selectattr('domain', 'equalto', target_domain) | list | first) | default({}) }}"
+        selected_domain: "{{ (all_config_data.domains | default([]) | selectattr('domain', 'equalto', device_group_domain) | list | first) | default({}) }}"
 
     - name: Validate selected domain exists in combined config
       assert:
         that:
           - selected_domain.domain is defined
-        fail_msg: "Domain '{{ target_domain }}' not found in config/config.yml combined config"
+        fail_msg: "Domain '{{ device_group_domain }}' not found in config/config.yml combined config"
 
-    - name: Select build target from combined config
+    - name: Select device group from combined config
       set_fact:
-        selected_build_target: "{{ (selected_domain.build_targets | default([]) | selectattr('name', 'equalto', target_name) | list | first) | default({}) }}"
+        selected_device_group: "{{ (selected_domain.device_groups | default([]) | selectattr('name', 'equalto', device_group_name) | list | first) | default({}) }}"
 
-    - name: Validate selected build target exists in combined config
+    - name: Validate selected device group exists in combined config
       assert:
         that:
-          - selected_build_target.name is defined
-        fail_msg: "Build target '{{ target_name }}' not found in domain '{{ target_domain }}' in config/config.yml"
+          - selected_device_group.name is defined
+        fail_msg: "Device group '{{ device_group_name }}' not found in domain '{{ device_group_domain }}' in config/config.yml"
 
-    - name: Set ordered target groups from selected build target
+    - name: Set ordered policies from selected device group
       set_fact:
-        normalized_target_groups: "{{ selected_build_target.groups }}"
+        normalized_device_group_policies: "{{ selected_device_group.policies }}"
 
-    - name: Build group lookup by name within domain
+    - name: Build policy lookup by name within domain
       set_fact:
-        groups_by_name: "{{ dict((selected_domain.groups | default([])) | map(attribute='name') | zip((selected_domain.groups | default([])))) }}"
+        policies_by_name: "{{ dict((selected_domain.policies | default([])) | map(attribute='name') | zip((selected_domain.policies | default([])))) }}"
 
-    - name: Validate all target groups exist in selected domain
+    - name: Validate all device group policies exist in selected domain
       assert:
         that:
-          - item in groups_by_name
-        fail_msg: "Group '{{ item }}' not found in domain '{{ target_domain }}' in config/config.yml combined config"
-      loop: "{{ normalized_target_groups }}"
+          - item in policies_by_name
+        fail_msg: "Policy '{{ item }}' not found in domain '{{ device_group_domain }}' in config/config.yml combined config"
+      loop: "{{ normalized_device_group_policies }}"
 
     - name: Initialize merged configuration overlay sections
       set_fact:
         configuration_overlay_sections: {}
 
-    - name: Merge configuration overlay sections in group order
+    - name: Merge configuration overlay sections in policy order
       set_fact:
         configuration_overlay_sections: >-
           {{ configuration_overlay_sections | combine(
-               groups_by_name[item] | dict2items | rejectattr('key', 'equalto', 'name') | items2dict,
+               policies_by_name[item] | dict2items | rejectattr('key', 'equalto', 'name') | items2dict,
                recursive=True) }}
-      loop: "{{ normalized_target_groups }}"
+      loop: "{{ normalized_device_group_policies }}"
 
     - name: Set build root path
       set_fact:

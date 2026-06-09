@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build one target-specific image from the combined config.
+# Build one device group specific image from the combined config.
 #
-# The combined config comes from the selected build target's group list:
-# - CI discovers a build target in config/config.yml
-# - this script passes the build target name and domain to Ansible
-# - the playbook looks up that build target and merges the attached groups
+# The combined config comes from the selected device group's policy list:
+# - CI discovers a device group in config/config.yml
+# - this script passes the device group name and domain to Ansible
+# - the playbook looks up that device group and merges the attached policies
 #   (in order) into a conbined configuration used for image build
 #
 # Inputs:
-# - arg1: build target name
+# - arg1: device group name
 # - arg2: image name (required)
-# - arg3: target domain
+# - arg3: device group domain
 # - env: BASE_IMAGE and IMAGE_REPO
 #
 # Flow:
@@ -26,11 +26,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
 : "${IMAGE_REPO:?IMAGE_REPO must be set by workflow environment}"
 
-# Script args: build target name, required image name, required target domain.
-TARGET_NAME="$1"
+# Script args: build device group name, required image name, required device group domain.
+DEVICE_GROUP_NAME="$1"
 IMAGE_NAME="${2:?image name argument is required}"
-TARGET_DOMAIN="${3:?target domain argument is required}"
-IMAGE_REF_BASE="${IMAGE_REPO}/${TARGET_DOMAIN}/${IMAGE_NAME}"
+DEVICE_GROUP_DOMAIN="${3:?device group domain argument is required}"
+IMAGE_REF_BASE="${IMAGE_REPO}/${DEVICE_GROUP_DOMAIN}/${IMAGE_NAME}"
 export IMAGE_REPO
 DATE_TAG="$(date -u +%Y%m%d)"
 
@@ -58,8 +58,8 @@ fi
 # Recreate build output for this image name from scratch.
 rm -rf "build/${IMAGE_NAME}"
 
-# Render overlay payload from the selected build target.
-ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "target_domain=${TARGET_DOMAIN}" -e "target_name=${TARGET_NAME}" -e "build_name=${IMAGE_NAME}"
+# Render overlay payload from the selected device group.
+ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "device_group_domain=${DEVICE_GROUP_DOMAIN}" -e "device_group_name=${DEVICE_GROUP_NAME}" -e "build_name=${IMAGE_NAME}"
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 

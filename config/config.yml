@@ -1,6 +1,6 @@
 domains:
   - domain: demo
-    groups:
+    policies:
       - name: nordborg
         desktop:
           background_image_file: config/assets/demo/jura.png
@@ -30,9 +30,9 @@ domains:
         firefox_urls:
           urls:
             - https://os2borgerpc.os2.eu/
-    build_targets:
+    device_groups:
       - name: Nordborg
         description: Build image for Nordborg
-        groups:
+        policies:
           - nordborg
         image_name: nordborg
