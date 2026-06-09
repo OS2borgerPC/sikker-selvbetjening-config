@@ -59,7 +59,7 @@ def main() -> int:
                 return 1
             seen_image_names.add(image_key)
 
-            missing_policies = [policy for policy in policies if policy not in available_policy_names]
+            missing_policies = [policy for policy in policies if policy not in available_policies_names]
             if missing_policies:
                 missing_csv = ", ".join(missing_policies)
                 print(
