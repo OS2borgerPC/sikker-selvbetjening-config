@@ -22,7 +22,7 @@ domains:
           ssid: borgernet   # Required
           psk: ""           # Optional (can be left empty)
           hidden: false     # Optional (can be left empty)
-        favorite-apps:
+        favorite_apps:
           apps:
             - org.gnome.Nautilus.desktop
             - org.mozilla.firefox.desktop
