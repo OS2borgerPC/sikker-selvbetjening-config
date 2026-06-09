@@ -27,6 +27,9 @@ domains:
             - org.gnome.Nautilus.desktop
             - org.mozilla.firefox.desktop
             - logout-button.desktop
+        firefox_urls:
+          urls:
+            - https://os2borgerpc.os2.eu/
     build_targets:
       - name: Nordborg
         description: Build image for Nordborg
