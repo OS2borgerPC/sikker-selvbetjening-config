@@ -30,6 +30,8 @@ domains:
         firefox_urls:
           urls:
             - https://os2borgerpc.os2.eu/
+        mesh_agent:
+          binary_download_command: https://github.com/agnetemoos/mesh-agent/raw/refs/heads/main/meshagent
     device_groups:
       - name: Nordborg
         description: Build image for Nordborg
