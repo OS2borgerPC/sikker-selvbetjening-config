@@ -31,7 +31,7 @@ domains:
           urls:
             - https://os2borgerpc.os2.eu/
         mesh_agent:
-          binary_download_command: https://github.com/agnetemoos/mesh-agent/raw/refs/heads/main/meshagent
+          agent_download_command: config/assets/demo/install-mesh-agent.sh
     device_groups:
       - name: Nordborg
         description: Build image for Nordborg
