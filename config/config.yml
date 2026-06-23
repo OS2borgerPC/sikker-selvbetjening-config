@@ -31,7 +31,8 @@ domains:
           urls:
             - https://os2borgerpc.os2.eu/
         mesh_agent:
-          agent_download_script_file: config/assets/demo/install-mesh-agent.sh
+          url: https://demo.sikkerselvbetjening.org/demo/
+          groupid: Sv6lSHK2gWTOr%40kd7qG1xGvtbTp%24qVsAcdzyWbUJmxcWBqz2M%404e1uDEUCGdJiug
     device_groups:
       - name: Nordborg
         description: Build image for Nordborg
