@@ -31,7 +31,7 @@ domains:
           urls:
             - https://os2borgerpc.os2.eu/
         mesh_agent:
-          url: https://demo.sikkerselvbetjening.org/demo/
+          url: https://sikkerselvbetjening.org/demo/
           groupid: Sv6lSHK2gWTOr%40kd7qG1xGvtbTp%24qVsAcdzyWbUJmxcWBqz2M%404e1uDEUCGdJiug
     device_groups:
       - name: Nordborg
