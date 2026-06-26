@@ -6,7 +6,7 @@ domains:
           background_image_file: config/assets/demo/jura.png
         printer:
           printers:
-            - name: ricoh_c3010
+            - name: ricoh_c3010122
               printer-type: with_ppd
               display_name: P11567 - Ricoh C3010
               protocol: socket
@@ -19,9 +19,8 @@ domains:
                 duplex: none
                 orientation: portrait
         wifi:
-          ssid: borgernet   # Required
-          psk: ""           # Optional (can be left empty)
-          hidden: false     # Optional (can be left empty)
+          ssid: borgernet
+          hidden: false
         favorite_apps:
           apps:
             - org.gnome.Nautilus.desktop
