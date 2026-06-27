@@ -37,5 +37,5 @@ domains:
       - name: Nordborg
         description: Build image for Nordborg
         policies:
-          - nordborg
+          - sjkfhsuakxskajcs
         image_name: nordborg
