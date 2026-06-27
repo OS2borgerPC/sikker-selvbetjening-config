@@ -1,7 +1,8 @@
 domains:
   - domain: demo
     policies:
-      - name: nordborg
+      - id: sjkfhsuakxskajcs
+        name: nordborg
         desktop:
           background_image_file: config/assets/demo/test.png
         printer:
