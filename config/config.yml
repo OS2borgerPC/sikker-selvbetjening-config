@@ -33,6 +33,8 @@ domains:
         mesh_agent:
           url: https://sikkerselvbetjening.org/demo/
           groupid: Sv6lSHK2gWTOr%40kd7qG1xGvtbTp%24qVsAcdzyWbUJmxcWBqz2M%404e1uDEUCGdJiug
+      - id: xjxjjx
+        name: xjjxjjxjx
     device_groups:
       - id: mesh/demo/A7tZ1lm1HqXkM@QwI0R3DZm9rbJiGJRgSAym6DlksTftqy5A35wbjn@TsZJen55R
         name: Nordborg
