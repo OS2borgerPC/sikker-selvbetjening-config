@@ -15,11 +15,10 @@ domains:
                 ip: 10.1.1.30
                 ppd_file: config/assets/demo/Ricoh-IM_C3010-PDF-Ricoh.ppd
                 is_default: true
-                settings:
-                  page_size: A4
-                  color_mode: rgb
-                  duplex: none
-                  orientation: portrait
+                page_size: A4
+                color_mode: rgb
+                duplex: none
+                orientation: portrait
         wifi:
           ssid: borgernet
           hidden: false
