@@ -34,7 +34,7 @@ domains:
           url: https://sikkerselvbetjening.org/demo/
           groupid: Sv6lSHK2gWTOr%40kd7qG1xGvtbTp%24qVsAcdzyWbUJmxcWBqz2M%404e1uDEUCGdJiug
     device_groups:
-      - id: 20&gotomesh=A7tZ1lm1HqXkM@QwI0R3DZm9rbJiGJRgSAym6DlksTftqy5A35wbjn@TsZJen55R
+      - id: A7tZ1lm1HqXkM@QwI0R3DZm9rbJiGJRgSAym6DlksTftqy5A35wbjn@TsZJen55R
         name: Nordborg
         description: Build image for Nordborg
         policies:
