@@ -1,0 +1,14 @@
+printer:
+  printers:
+    with_ppd:
+      - name: ricoh_c3015
+        printer-type: with_ppd
+        display_name: P11567 - Ricoh C3010
+        protocol: socket
+        ip: 10.1.1.30
+        ppd_file: /config/bibliotek/assets/Ricoh-IM_C3010-PDF-Ricoh.ppd
+        is_default: true
+        page_size: A4
+        color_mode: rgb
+        duplex: none
+        orientation: portrait

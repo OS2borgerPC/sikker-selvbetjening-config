@@ -1,0 +1,13 @@
+wifi:
+  ssid: borgernet
+  hidden: false
+favorite_apps:
+  apps:
+    - org.gnome.Nautilus.desktop
+    - org.mozilla.firefox.desktop
+    - logout-button.desktop
+firefox_urls:
+  urls:
+    - https://biblioteket.sonderborg.dk/
+desktop:
+  background_image_file: /config/bibliotek/assets/bg-green.png
