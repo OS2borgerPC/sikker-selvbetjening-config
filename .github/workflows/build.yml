@@ -3,6 +3,10 @@ name: Build device group images
 on:
   workflow_dispatch:
     inputs:
+      tenant:
+        description: Optional tenant folder name (for example bibliotek)
+        required: false
+        type: string
       imageconfig_file:
         description: Optional imageconfig filename or path to build (for example boernebibliotek.yml or config/bibliotek/imageconfigs/boernebibliotek.yml)
         required: false
@@ -31,46 +35,25 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Validate and build one or all imageconfigs
+      - name: Discover tenants
+        id: discover_tenants
         run: |
           set -euo pipefail
 
-          requested_imageconfig="${{ inputs.imageconfig_file }}"
+          mapfile -t tenants < <(find config -mindepth 1 -maxdepth 1 -type d | sort)
 
-          if [[ -n "${requested_imageconfig}" ]]; then
-            if [[ -f "${requested_imageconfig}" ]]; then
-              imageconfigs=("${requested_imageconfig}")
-            else
-              mapfile -t imageconfigs < <(find config -type f -path "*/imageconfigs/${requested_imageconfig}" | sort)
-            fi
-          else
-            mapfile -t imageconfigs < <(find config -type f -path '*/imageconfigs/*.yml' | sort)
-          fi
-
-          if [[ "${#imageconfigs[@]}" -eq 0 ]]; then
-            if [[ -n "${requested_imageconfig}" ]]; then
-              echo "No imageconfig files matched input: ${requested_imageconfig}" >&2
-            else
-              echo "No imageconfig files found under config/*/imageconfigs"
-            fi
+          if [[ "${#tenants[@]}" -eq 0 ]]; then
+            echo "No tenant folders found under config/" >&2
             exit 1
           fi
 
-          for imageconfig in "${imageconfigs[@]}"; do
-            echo "Processing ${imageconfig}"
+          tenants_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${tenants[@]}")"
+          echo "tenants_json=${tenants_json}" >> "$GITHUB_OUTPUT"
 
-            image_name="$(python3 -c 'import sys, yaml; print((yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}).get("image_id", ""))' "${imageconfig}")"
-            if [[ -z "${image_name}" ]]; then
-              echo "Missing required image_id in ${imageconfig}" >&2
-              exit 1
-            fi
-
-            image_domain="$(python3 -c 'import re, sys; m = re.match(r"^config/([^/]+)/imageconfigs/[^/]+$", sys.argv[1]); print(m.group(1) if m else "")' "${imageconfig}")"
-            if [[ -z "${image_domain}" ]]; then
-              echo "Could not derive image domain from ${imageconfig}" >&2
-              exit 1
-            fi
-
-            ./scripts/validate-config.sh "${imageconfig}" "config"
-            ./scripts/build-device-group-image.sh "${imageconfig}" "${image_name}" "${image_domain}"
+          echo "Discovered tenants:" >> "$GITHUB_STEP_SUMMARY"
+          for tenant in "${tenants[@]}"; do
+            echo "- ${tenant}" >> "$GITHUB_STEP_SUMMARY"
           done
+          echo >> "$GITHUB_STEP_SUMMARY"
+
+      

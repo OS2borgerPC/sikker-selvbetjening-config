@@ -20,6 +20,20 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
 : "${IMAGE_REPO:?IMAGE_REPO must be set by workflow environment}"
 
+# Optional CI-provided assets dir override (repository-relative or absolute).
+ASSETS_DIR="${ASSETS_DIR:-config/assets}"
+
+if [[ "${ASSETS_DIR}" = /* ]]; then
+  ASSETS_DIR_ABS="${ASSETS_DIR}"
+else
+  ASSETS_DIR_ABS="${REPO_ROOT}/${ASSETS_DIR}"
+fi
+
+if [[ ! -d "${ASSETS_DIR_ABS}" ]]; then
+  echo "Assets directory not found: ${ASSETS_DIR_ABS}" >&2
+  exit 1
+fi
+
 # Script args: imageconfig file path, required image name, required image domain.
 IMAGECONFIG_FILE="${1:?imageconfig file path argument is required}"
 IMAGE_NAME="${2:?image name argument is required}"
@@ -30,6 +44,7 @@ DATE_TAG="$(date -u +%Y%m%d)"
 
 echo "Using BASE_IMAGE=${BASE_IMAGE}"
 echo "Using IMAGE_REPO=${IMAGE_REPO}"
+echo "Using ASSETS_DIR=${ASSETS_DIR}"
 
 # Derive an immutable commit tag for traceability from CI-provided GITHUB_SHA.
 if [[ -n "${GITHUB_SHA:-}" ]]; then
@@ -80,7 +95,7 @@ if [[ -f "${CONFIGURATION_OVERLAY}" ]]; then
   fi
 
   podman run --rm \
-    -v "${REPO_ROOT}/config/assets:/assets:Z,ro" \
+    -v "${ASSETS_DIR_ABS}:/assets:Z,ro" \
     -v "${REPO_ROOT}/build/${IMAGE_NAME}:/work:Z" \
     "${BASE_IMAGE}" \
     /usr/libexec/sikker-create-overlay \
