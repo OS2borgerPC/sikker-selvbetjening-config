@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tenant:
-        description: Optional tenant folder name (for example bibliotek)
+        description: Optional tenant path (for example config/bibliotek)
         required: false
         type: string
       imageconfig_file:
@@ -17,6 +17,12 @@ env:
   BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
   # Registry/repository prefix where derived images are tagged and pushed.
   IMAGE_REPO: ghcr.io/os2borgerpc/sikker-selvbetjening-config
+
+  # Directories under config/ where imageconfigs, assets and policies are located.
+  CONFIGS_DIR: config
+  IMAGECONFIGS_DIR: imageconfigs
+  ASSETS_DIR: assets
+  POLICIES_DIR: policies
 
 permissions:
   contents: read
@@ -40,12 +46,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t tenants < <(find config -mindepth 1 -maxdepth 1 -type d | sort)
+          mapfile -t tenant_dirs < <(find "${CONFIGS_DIR}" -mindepth 1 -maxdepth 1 -type d | sort)
 
-          if [[ "${#tenants[@]}" -eq 0 ]]; then
-            echo "No tenant folders found under config/" >&2
+          if [[ "${#tenant_dirs[@]}" -eq 0 ]]; then
+            echo "No tenant folders found under ${CONFIGS_DIR}/" >&2
             exit 1
           fi
+
+          tenants=()
+          for tenant_dir in "${tenant_dirs[@]}"; do
+            tenants+=("$(basename "${tenant_dir}")")
+          done
 
           tenants_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${tenants[@]}")"
           echo "tenants_json=${tenants_json}" >> "$GITHUB_OUTPUT"
