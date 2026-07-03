@@ -1,16 +1,14 @@
-# Render one normalized configuration overlay payload for a selected device group.
+# Render one normalized configuration overlay payload from one imageconfig file.
 #
 # This playbook is called by the build script with:
-# - device_group_domain: the domain containing the selected device group
-# - device_group_name: the selected device group name
+# - imageconfig_file: repository-relative path to imageconfig YAML
 # - build_name: the output folder name under build/
 #
 # What it does:
-# 1) load the combined config from config/config.yml
-# 2) resolve the requested domain and device group
-# 3) resolve the ordered policies attached to that device group
-# 4) merge the selected policies in order into one combined configuration overlay
-# 5) write build/<build_name>/configuration-overlay.normalized.json for later image build
+# 1) load selected imageconfig file
+# 2) resolve the ordered policy files listed in that imageconfig
+# 3) merge policy content in listed order into one configuration overlay
+# 4) write build/<build_name>/configuration-overlay.json for later image build
 
 - name: Render config overlay per device group
   hosts: localhost
@@ -18,71 +16,83 @@
   gather_facts: false
 
   pre_tasks:
-    - name: Validate device group domain input
+    - name: Validate imageconfig file input
       assert:
         that:
-          - device_group_domain is defined
-          - device_group_domain | length > 0
-        fail_msg: "device_group_domain must be provided"
+          - imageconfig_file is defined
+          - imageconfig_file | length > 0
+        fail_msg: "imageconfig_file must be provided"
 
-    - name: Validate device_group_name input
+    - name: Validate build name input
       assert:
         that:
-          - device_group_name is defined
-          - device_group_name | length > 0
-        fail_msg: "device_group_name must be provided"
+          - build_name is defined
+          - build_name | length > 0
+        fail_msg: "build_name must be provided"
 
-    - name: Load combined config/config.yml
+    - name: Set imageconfig absolute path
+      set_fact:
+        imageconfig_abs_path: "{{ playbook_dir }}/../{{ imageconfig_file }}"
+
+    - name: Validate imageconfig file exists
+      stat:
+        path: "{{ imageconfig_abs_path }}"
+      register: imageconfig_stat
+
+    - name: Fail when imageconfig file is missing
+      assert:
+        that:
+          - imageconfig_stat.stat.exists
+          - imageconfig_stat.stat.isreg
+        fail_msg: "Imageconfig file '{{ imageconfig_file }}' not found"
+
+    - name: Load selected imageconfig file
       include_vars:
-        file: "../config/config.yml"
-        name: all_config_data
+        file: "{{ imageconfig_abs_path }}"
+        name: imageconfig_data
 
-    - name: Select domain from combined config
-      set_fact:
-        selected_domain: "{{ (all_config_data.domains | default([]) | selectattr('domain', 'equalto', device_group_domain) | list | first) | default({}) }}"
-
-    - name: Validate selected domain exists in combined config
+    - name: Validate imageconfig policy list
       assert:
         that:
-          - selected_domain.domain is defined
-        fail_msg: "Domain '{{ device_group_domain }}' not found in config/config.yml combined config"
+          - imageconfig_data.policies is defined
+          - imageconfig_data.policies | type_debug == 'list'
+          - imageconfig_data.policies | length > 0
+        fail_msg: "imageconfig '{{ imageconfig_file }}' must contain a non-empty policies list"
 
-    - name: Select device group from combined config
+    - name: Set imageconfig directory
       set_fact:
-        selected_device_group: "{{ (selected_domain.device_groups | default([]) | selectattr('name', 'equalto', device_group_name) | list | first) | default({}) }}"
+        imageconfig_dir: "{{ imageconfig_abs_path | dirname }}"
 
-    - name: Validate selected device group exists in combined config
+    - name: Resolve policy file paths
+      set_fact:
+        policy_files: "{{ (policy_files | default([])) + [ (item if (item is match('^/')) else (imageconfig_dir ~ '/' ~ item)) ] }}"
+      loop: "{{ imageconfig_data.policies }}"
+
+    - name: Validate policy files exist
+      stat:
+        path: "{{ item }}"
+      register: policy_file_stats
+      loop: "{{ policy_files }}"
+
+    - name: Fail when any policy file is missing
       assert:
         that:
-          - selected_device_group.name is defined
-        fail_msg: "Device group '{{ device_group_name }}' not found in domain '{{ device_group_domain }}' in config/config.yml"
-
-    - name: Set ordered policies from selected device group
-      set_fact:
-        normalized_device_group_policies: "{{ selected_device_group.policies }}"
-
-    - name: Build policy lookup by name within domain
-      set_fact:
-        policies_by_name: "{{ dict((selected_domain.policies | default([])) | map(attribute='name') | zip((selected_domain.policies | default([])))) }}"
-
-    - name: Validate all device group policies exist in selected domain
-      assert:
-        that:
-          - item in policies_by_name
-        fail_msg: "Policy '{{ item }}' not found in domain '{{ device_group_domain }}' in config/config.yml combined config"
-      loop: "{{ normalized_device_group_policies }}"
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "Policy file '{{ item.item }}' referenced by imageconfig '{{ imageconfig_file }}' does not exist"
+      loop: "{{ policy_file_stats.results }}"
 
     - name: Initialize merged configuration overlay sections
       set_fact:
         configuration_overlay_sections: {}
 
-    - name: Merge configuration overlay sections in policy order
+    - name: Merge configuration overlay sections in imageconfig policy order
       set_fact:
         configuration_overlay_sections: >-
           {{ configuration_overlay_sections | combine(
-               policies_by_name[item] | dict2items | rejectattr('key', 'equalto', 'name') | items2dict,
+               (lookup('file', item) | from_yaml) | dict2items | rejectattr('key', 'equalto', 'name') | rejectattr('key', 'equalto', 'id') | items2dict,
                recursive=True) }}
-      loop: "{{ normalized_device_group_policies }}"
+      loop: "{{ policy_files }}"
 
     - name: Set build root path
       set_fact:

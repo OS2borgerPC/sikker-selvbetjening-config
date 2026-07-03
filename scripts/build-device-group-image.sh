@@ -1,18 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build one device group specific image from the combined config.
-#
-# The combined config comes from the selected device group's policy list:
-# - CI discovers a device group in config/config.yml
-# - this script passes the device group name and domain to Ansible
-# - the playbook looks up that device group and merges the attached policies
-#   (in order) into a conbined configuration used for image build
+# Build one image from one imageconfig file.
 #
 # Inputs:
-# - arg1: device group name
+# - arg1: imageconfig file path (required)
 # - arg2: image name (required)
-# - arg3: device group domain
+# - arg3: image domain (required)
 # - env: BASE_IMAGE and IMAGE_REPO
 #
 # Flow:
@@ -26,11 +20,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${BASE_IMAGE:?BASE_IMAGE must be set by workflow environment}"
 : "${IMAGE_REPO:?IMAGE_REPO must be set by workflow environment}"
 
-# Script args: build device group name, required image name, required device group domain.
-DEVICE_GROUP_NAME="$1"
+# Script args: imageconfig file path, required image name, required image domain.
+IMAGECONFIG_FILE="${1:?imageconfig file path argument is required}"
 IMAGE_NAME="${2:?image name argument is required}"
-DEVICE_GROUP_DOMAIN="${3:?device group domain argument is required}"
-IMAGE_REF_BASE="${IMAGE_REPO}/${DEVICE_GROUP_DOMAIN}/${IMAGE_NAME}"
+IMAGE_DOMAIN="${3:?image domain argument is required}"
+IMAGE_REF_BASE="${IMAGE_REPO}/${IMAGE_DOMAIN}/${IMAGE_NAME}"
 export IMAGE_REPO
 DATE_TAG="$(date -u +%Y%m%d)"
 
@@ -58,8 +52,10 @@ fi
 # Recreate build output for this image name from scratch.
 rm -rf "build/${IMAGE_NAME}"
 
-# Render overlay payload from the selected device group.
-ansible-playbook -i localhost, playbooks/render-host-overlays.yml -e "device_group_domain=${DEVICE_GROUP_DOMAIN}" -e "device_group_name=${DEVICE_GROUP_NAME}" -e "build_name=${IMAGE_NAME}"
+# Render overlay payload from the selected imageconfig file.
+ansible-playbook -i localhost, playbooks/render-host-overlays.yml \
+  -e "imageconfig_file=${IMAGECONFIG_FILE}" \
+  -e "build_name=${IMAGE_NAME}"
 
 mkdir -p "build/${IMAGE_NAME}/usr" "build/${IMAGE_NAME}/etc"
 
