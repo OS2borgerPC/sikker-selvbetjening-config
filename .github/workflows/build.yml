@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       tenant:
-        description: Optional tenant path (for example config/bibliotek)
+        description: Optional tenant name (for example bibliotek)
         required: false
         type: string
       imageconfig_file:
-        description: Optional imageconfig filename or path to build (for example boernebibliotek.yml or config/bibliotek/imageconfigs/boernebibliotek.yml)
+        description: Optional imageconfig filename (for example boernebibliotek.yml)
         required: false
         type: string
 
@@ -41,11 +41,17 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Discover tenants
-        id: discover_tenants
+      - name: Discover tenants and imageconfigs
+        id: discover_tenants_and_imageconfigs
         run: |
           set -euo pipefail
 
+          # Optional workflow input to narrow processing to one tenant.
+          requested_tenant="${{ inputs.tenant }}"
+          # Optional workflow input to narrow processing to one imageconfig file.
+          requested_imageconfig_file="${{ inputs.imageconfig_file }}"
+
+          # Discover tenant directories directly below CONFIGS_DIR.
           mapfile -t tenant_dirs < <(find "${CONFIGS_DIR}" -mindepth 1 -maxdepth 1 -type d | sort)
 
           if [[ "${#tenant_dirs[@]}" -eq 0 ]]; then
@@ -53,17 +59,74 @@ jobs:
             exit 1
           fi
 
+          # Keep only folder names (without CONFIGS_DIR prefix).
           tenants=()
           for tenant_dir in "${tenant_dirs[@]}"; do
             tenants+=("$(basename "${tenant_dir}")")
           done
 
-          tenants_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${tenants[@]}")"
-          echo "tenants_json=${tenants_json}" >> "$GITHUB_OUTPUT"
+          if [[ -n "${requested_tenant}" ]]; then
+            # Validate requested tenant exists in discovered tenant names.
+            tenant_found="no"
+            for tenant in "${tenants[@]}"; do
+              if [[ "${tenant}" == "${requested_tenant}" ]]; then
+                tenant_found="yes"
+                break
+              fi
+            done
 
+            if [[ "${tenant_found}" != "yes" ]]; then
+              echo "Requested tenant not found: ${requested_tenant}" >&2
+              exit 1
+            fi
+
+            # Reduce the tenant list to the requested tenant only.
+            tenants=("${requested_tenant}")
+          fi
+
+          # Discover imageconfig files for selected tenants.
+          imageconfigs=()
+          for tenant in "${tenants[@]}"; do
+            imageconfigs_dir="${CONFIGS_DIR}/${tenant}/${IMAGECONFIGS_DIR}"
+
+            if [[ ! -d "${imageconfigs_dir}" ]]; then
+              continue
+            fi
+
+            if [[ -n "${requested_imageconfig_file}" ]]; then
+              if [[ -f "${requested_imageconfig_file}" ]]; then
+                if [[ "${requested_imageconfig_file}" == "${imageconfigs_dir}/"* ]]; then
+                  imageconfigs+=("${requested_imageconfig_file}")
+                fi
+              else
+                mapfile -t tenant_imageconfigs < <(find "${imageconfigs_dir}" -mindepth 1 -maxdepth 1 -type f -name "${requested_imageconfig_file}" | sort)
+                imageconfigs+=("${tenant_imageconfigs[@]}")
+              fi
+            else
+              mapfile -t tenant_imageconfigs < <(find "${imageconfigs_dir}" -mindepth 1 -maxdepth 1 -type f -name '*.yml' | sort)
+              imageconfigs+=("${tenant_imageconfigs[@]}")
+            fi
+          done
+
+          if [[ "${#imageconfigs[@]}" -eq 0 ]]; then
+            echo "No imageconfig files found for selected tenant/imageconfig filters" >&2
+            exit 1
+          fi
+
+          # Export imageconfig list as JSON for later steps.
+          imageconfigs_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${imageconfigs[@]}")"
+          echo "imageconfigs_json=${imageconfigs_json}" >> "$GITHUB_OUTPUT"
+
+          # Print discovered/selected tenants in the run summary.
           echo "Discovered tenants:" >> "$GITHUB_STEP_SUMMARY"
           for tenant in "${tenants[@]}"; do
             echo "- ${tenant}" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Discovered imageconfigs:" >> "$GITHUB_STEP_SUMMARY"
+          for imageconfig in "${imageconfigs[@]}"; do
+            echo "- ${imageconfig}" >> "$GITHUB_STEP_SUMMARY"
           done
           echo >> "$GITHUB_STEP_SUMMARY"
 
