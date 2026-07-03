@@ -130,4 +130,41 @@ jobs:
           done
           echo >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Validate imageconfigs
+        env:
+          IMAGECONFIGS_JSON: ${{ steps.discover_tenants_and_imageconfigs.outputs.imageconfigs_json }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t imageconfigs < <(python3 - <<'PY'
+          import json
+          import os
+
+          imageconfigs = json.loads(os.environ["IMAGECONFIGS_JSON"])
+          for imageconfig in imageconfigs:
+              print(imageconfig)
+          PY
+          )
+
+          for imageconfig in "${imageconfigs[@]}"; do
+            expected_prefix="${CONFIGS_DIR}/"
+            imageconfig_without_prefix="${imageconfig#${expected_prefix}}"
+
+            if [[ "${imageconfig_without_prefix}" == "${imageconfig}" ]]; then
+              echo "Imageconfig path must start with ${expected_prefix}: ${imageconfig}" >&2
+              exit 1
+            fi
+
+            tenant="${imageconfig_without_prefix%%/*}"
+            remaining_path="${imageconfig_without_prefix#*/}"
+
+            if [[ "${remaining_path}" != "${IMAGECONFIGS_DIR}/"* ]]; then
+              echo "Imageconfig path must follow ${CONFIGS_DIR}/<tenant>/${IMAGECONFIGS_DIR}/...: ${imageconfig}" >&2
+              exit 1
+            fi
+
+            policies_root="${CONFIGS_DIR}/${tenant}/${POLICIES_DIR}"
+            ./scripts/validate-config.sh "${imageconfig}" "${policies_root}"
+          done
+
       
