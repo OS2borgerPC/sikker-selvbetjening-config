@@ -85,7 +85,7 @@ jobs:
           fi
 
           # Discover imageconfig files for selected tenants.
-          imageconfigs=()
+          imageconfig_pairs=()
           for tenant in "${tenants[@]}"; do
             imageconfigs_dir="${CONFIGS_DIR}/${tenant}/${IMAGECONFIGS_DIR}"
 
@@ -96,26 +96,41 @@ jobs:
             if [[ -n "${requested_imageconfig_file}" ]]; then
               if [[ -f "${requested_imageconfig_file}" ]]; then
                 if [[ "${requested_imageconfig_file}" == "${imageconfigs_dir}/"* ]]; then
-                  imageconfigs+=("${requested_imageconfig_file}")
+                  imageconfig_pairs+=("${tenant}|${requested_imageconfig_file}")
                 fi
               else
                 mapfile -t tenant_imageconfigs < <(find "${imageconfigs_dir}" -mindepth 1 -maxdepth 1 -type f -name "${requested_imageconfig_file}" | sort)
-                imageconfigs+=("${tenant_imageconfigs[@]}")
+                for imageconfig in "${tenant_imageconfigs[@]}"; do
+                  imageconfig_pairs+=("${tenant}|${imageconfig}")
+                done
               fi
             else
               mapfile -t tenant_imageconfigs < <(find "${imageconfigs_dir}" -mindepth 1 -maxdepth 1 -type f -name '*.yml' | sort)
-              imageconfigs+=("${tenant_imageconfigs[@]}")
+              for imageconfig in "${tenant_imageconfigs[@]}"; do
+                imageconfig_pairs+=("${tenant}|${imageconfig}")
+              done
             fi
           done
 
-          if [[ "${#imageconfigs[@]}" -eq 0 ]]; then
+          if [[ "${#imageconfig_pairs[@]}" -eq 0 ]]; then
             echo "No imageconfig files found for selected tenant/imageconfig filters" >&2
             exit 1
           fi
 
-          # Export imageconfig list as JSON for later steps.
-          imageconfigs_json="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${imageconfigs[@]}")"
-          echo "imageconfigs_json=${imageconfigs_json}" >> "$GITHUB_OUTPUT"
+          # Export tenant-imageconfig pairs as JSON for later steps.
+          imageconfig_pairs_json="$(python3 - <<'PY' "${imageconfig_pairs[@]}"
+          import json
+          import sys
+
+          pairs = []
+          for raw in sys.argv[1:]:
+              tenant, imageconfig = raw.split("|", 1)
+              pairs.append({"tenant": tenant, "imageconfig": imageconfig})
+
+          print(json.dumps(pairs))
+          PY
+          )"
+          echo "imageconfig_pairs_json=${imageconfig_pairs_json}" >> "$GITHUB_OUTPUT"
 
           # Print discovered/selected tenants in the run summary.
           echo "Discovered tenants:" >> "$GITHUB_STEP_SUMMARY"
@@ -125,41 +140,35 @@ jobs:
           echo >> "$GITHUB_STEP_SUMMARY"
 
           echo "Discovered imageconfigs:" >> "$GITHUB_STEP_SUMMARY"
-          for imageconfig in "${imageconfigs[@]}"; do
-            echo "- ${imageconfig}" >> "$GITHUB_STEP_SUMMARY"
+          for pair in "${imageconfig_pairs[@]}"; do
+            tenant="${pair%%|*}"
+            imageconfig="${pair#*|}"
+            echo "- ${tenant}: ${imageconfig}" >> "$GITHUB_STEP_SUMMARY"
           done
           echo >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate imageconfigs
         env:
-          IMAGECONFIGS_JSON: ${{ steps.discover_tenants_and_imageconfigs.outputs.imageconfigs_json }}
+          IMAGECONFIG_PAIRS_JSON: ${{ steps.discover_tenants_and_imageconfigs.outputs.imageconfig_pairs_json }}
         run: |
           set -euo pipefail
 
-          mapfile -t imageconfigs < <(python3 - <<'PY'
+          mapfile -t imageconfig_pairs < <(python3 - <<'PY'
           import json
           import os
 
-          imageconfigs = json.loads(os.environ["IMAGECONFIGS_JSON"])
-          for imageconfig in imageconfigs:
-              print(imageconfig)
+          pairs = json.loads(os.environ["IMAGECONFIG_PAIRS_JSON"])
+          for pair in pairs:
+              print(f"{pair['tenant']}|{pair['imageconfig']}")
           PY
           )
 
-          for imageconfig in "${imageconfigs[@]}"; do
-            expected_prefix="${CONFIGS_DIR}/"
-            imageconfig_without_prefix="${imageconfig#${expected_prefix}}"
+          for pair in "${imageconfig_pairs[@]}"; do
+            tenant="${pair%%|*}"
+            imageconfig="${pair#*|}"
 
-            if [[ "${imageconfig_without_prefix}" == "${imageconfig}" ]]; then
-              echo "Imageconfig path must start with ${expected_prefix}: ${imageconfig}" >&2
-              exit 1
-            fi
-
-            tenant="${imageconfig_without_prefix%%/*}"
-            remaining_path="${imageconfig_without_prefix#*/}"
-
-            if [[ "${remaining_path}" != "${IMAGECONFIGS_DIR}/"* ]]; then
-              echo "Imageconfig path must follow ${CONFIGS_DIR}/<tenant>/${IMAGECONFIGS_DIR}/...: ${imageconfig}" >&2
+            if [[ -z "${tenant}" || -z "${imageconfig}" ]]; then
+              echo "Invalid tenant/imageconfig pair: ${pair}" >&2
               exit 1
             fi
 
