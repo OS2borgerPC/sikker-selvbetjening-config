@@ -173,7 +173,8 @@ jobs:
             fi
 
             policies_root="${CONFIGS_DIR}/${tenant}/${POLICIES_DIR}"
-            ./scripts/validate-config.sh "${imageconfig}" "${policies_root}"
+            assets_root="${CONFIGS_DIR}/${tenant}/${ASSETS_DIR}"
+            ./scripts/validate-config.sh "${imageconfig}" "${policies_root}" "${assets_root}"
           done
 
       
