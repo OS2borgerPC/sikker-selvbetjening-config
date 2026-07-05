@@ -1,4 +1,4 @@
-name: Build device group images
+name: Build and Push Tenant Images
 
 on:
   workflow_dispatch:
