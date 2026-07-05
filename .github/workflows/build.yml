@@ -174,7 +174,14 @@ jobs:
 
             policies_root="${CONFIGS_DIR}/${tenant}/${POLICIES_DIR}"
             assets_root="${CONFIGS_DIR}/${tenant}/${ASSETS_DIR}"
-            ./scripts/validate-config.sh "${imageconfig}" "${policies_root}" "${assets_root}"
+            image_id="$(python3 -c 'import sys, yaml; print((yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}).get("image_id", ""))' "${imageconfig}")"
+            if [[ -z "${image_id}" ]]; then
+              echo "Missing required image_id in imageconfig: ${imageconfig}" >&2
+              exit 1
+            fi
+
+            target_image_ref="${IMAGE_REPO}/${tenant}/${image_id}"
+            ./scripts/validate-config.sh "${imageconfig}" "${policies_root}" "${assets_root}" "${target_image_ref}"
           done
 
       
