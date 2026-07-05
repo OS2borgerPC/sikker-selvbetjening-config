@@ -180,7 +180,7 @@ jobs:
               exit 1
             fi
 
-            target_image_ref="${IMAGE_REPO}/${tenant}/${image_id}"
+            target_image_ref="${IMAGE_REPO}/${tenant}/${image_id}:latest"
             ./scripts/validate-config.sh "${imageconfig}" "${policies_root}" "${assets_root}" "${target_image_ref}"
           done
 
