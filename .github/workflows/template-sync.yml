@@ -45,7 +45,9 @@ jobs:
           git remote add template "https://github.com/${TEMPLATE_REPO}.git"
           git fetch template "${TEMPLATE_BRANCH}"
 
-          git merge --no-ff --no-edit "template/${TEMPLATE_BRANCH}"
+          # Allow first sync in copied repositories that do not share commit
+          # ancestry with the template repository.
+          git merge --no-ff --no-edit --allow-unrelated-histories "template/${TEMPLATE_BRANCH}"
 
           if git diff --quiet "origin/${default_branch}...HEAD"; then
             echo "has_updates=false" >> "$GITHUB_OUTPUT"
