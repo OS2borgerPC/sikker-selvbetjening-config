@@ -147,7 +147,7 @@ jobs:
           done
           echo >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Validate imageconfigs
+      - name: Build and push tenant imageconfigs
         env:
           IMAGECONFIG_PAIRS_JSON: ${{ steps.discover_tenants_and_imageconfigs.outputs.imageconfig_pairs_json }}
         run: |
@@ -181,7 +181,7 @@ jobs:
             fi
 
             target_image_ref="${IMAGE_REPO}/${tenant}/${image_id}:latest"
-            ./scripts/validate-config.sh "${imageconfig}" "${policies_root}" "${assets_root}" "${target_image_ref}"
+            ./scripts/build-image.sh "${imageconfig}" "${policies_root}" "${assets_root}" "${target_image_ref}"
           done
 
       
