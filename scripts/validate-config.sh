@@ -47,8 +47,41 @@ mkdir -p "${OUTPUT_ROOT_ABS}"
 echo "Validating ${IMAGECONFIG_FILE_REL} using ${BASE_IMAGE}"
 echo "Using TARGET_IMAGE_REF=${TARGET_IMAGE_REF}"
 
+# Share the host Podman engine with the containerized validator so built images
+# are visible when this script pushes refs on the host.
+XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+SOCK="${XDG_RUNTIME_DIR}/podman/podman.sock"
+mkdir -p "$(dirname "${SOCK}")"
+
+PODMAN_SERVICE_PID=""
+if [[ ! -S "${SOCK}" ]]; then
+  podman system service --time=0 "unix://${SOCK}" >/tmp/podman-service.log 2>&1 &
+  PODMAN_SERVICE_PID="$!"
+fi
+
+podman_ready="no"
+for _ in {1..30}; do
+  if podman --url "unix://${SOCK}" info >/dev/null 2>&1; then
+    podman_ready="yes"
+    break
+  fi
+  sleep 1
+done
+
+if [[ "${podman_ready}" != "yes" ]]; then
+  echo "Podman socket did not become ready: ${SOCK}" >&2
+  if [[ -f /tmp/podman-service.log ]]; then
+    echo "Podman service log:" >&2
+    tail -n 50 /tmp/podman-service.log >&2 || true
+  fi
+  exit 1
+fi
+
 build_log="$(mktemp)"
 cleanup() {
+  if [[ -n "${PODMAN_SERVICE_PID}" ]]; then
+    kill "${PODMAN_SERVICE_PID}" >/dev/null 2>&1 || true
+  fi
   rm -f "${build_log}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -58,6 +91,8 @@ podman run --rm \
   -e BASE_IMAGE="${BASE_IMAGE}" \
   -e GITHUB_SHA="${GITHUB_SHA:-}" \
   -e SIKKER_OUTPUT_ROOT="/work/out" \
+  -e CONTAINER_HOST="unix:///run/podman/podman.sock" \
+  -v "${SOCK}:/run/podman/podman.sock:Z" \
   -v "${IMAGECONFIG_FILE_ABS}:/work/imageconfig.yml:Z,ro" \
   -v "${POLICIES_ROOT_ABS}:/work/policies:Z,ro" \
   -v "${ASSETS_ROOT_ABS}:/work/assets:Z,ro" \
