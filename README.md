@@ -26,4 +26,45 @@ This makes build, tag, and push happen against one shared Podman engine context.
 2. It is more complex than single-engine flows but avoids cross-context image visibility issues.
 3. Mounting the engine socket is a privileged capability; use only in trusted CI contexts.
 
-C
+## Use As Template
+
+This repository is intended to be copied and used as a tenant-specific configuration and publishing project.
+
+### 1. Create a new repository from this template
+
+1. Use GitHub template/copy flow to create your own repository.
+2. Add your tenant folders under `config/`.
+3. For each tenant, keep this structure:
+	1. `config/<tenant>/imageconfigs/*.yml`
+	2. `config/<tenant>/policies/*.yml`
+	3. `config/<tenant>/assets/*`
+
+### 2. Verify GitHub Actions permissions
+
+The workflow pushes images with `GITHUB_TOKEN`, so the repository must allow package writes.
+
+1. In your repository settings, ensure Actions workflow permissions allow write access.
+2. Keep workflow permissions including `packages: write`.
+
+### 3. Image publishing namespace
+
+The workflow publishes to:
+
+1. `ghcr.io/${{ github.repository }}`
+
+This means template copies publish into their own namespace automatically.
+
+Example for repo `agnete-allmail/my-sikker-selvbetjening-config`:
+
+1. `ghcr.io/agnete-allmail/my-sikker-selvbetjening-config/<tenant>/<image_id>:latest`
+
+### 4. Run the workflow
+
+Workflow: `Build and Push Tenant Images`
+
+Optional workflow_dispatch inputs:
+
+1. `tenant`: limit to one tenant (for example `bibliotek`)
+2. `imageconfig_file`: limit to one imageconfig filename (for example `boernebibliotek.yml`)
+
+If no inputs are provided, all tenant imageconfigs are discovered and processed.
