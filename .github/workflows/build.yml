@@ -16,7 +16,9 @@ env:
   # Base container image used for schema validation and as build FROM image.
   BASE_IMAGE: ghcr.io/os2borgerpc/sikker-selvbetjening:latest
   # Registry/repository prefix where derived images are tagged and pushed.
-  IMAGE_REPO: ghcr.io/os2borgerpc/sikker-selvbetjening-config
+  # Uses the current repository owner/name so template copies publish to their
+  # own GHCR namespace.
+  IMAGE_REPO: ghcr.io/${{ github.repository }}
 
   # Directories under config/ where imageconfigs, assets and policies are located.
   CONFIGS_DIR: config
