@@ -1,4 +1,4 @@
-# Sikker Selvbetjening Config
+# Sikker Selvbetjening Configurations Template
 
 
 
