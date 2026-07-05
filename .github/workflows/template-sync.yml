@@ -1,0 +1,85 @@
+name: Sync Template Updates
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  TEMPLATE_REPO: os2borgerpc/sikker-selvbetjening-config
+  TEMPLATE_BRANCH: main
+  SYNC_BRANCH: template-sync/upstream
+
+jobs:
+  sync-template:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream template
+        id: merge
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          default_branch="${DEFAULT_BRANCH:-main}"
+          git fetch origin "${default_branch}"
+          git checkout -B "${SYNC_BRANCH}" "origin/${default_branch}"
+
+          if git remote get-url template >/dev/null 2>&1; then
+            git remote remove template
+          fi
+          git remote add template "https://github.com/${TEMPLATE_REPO}.git"
+          git fetch template "${TEMPLATE_BRANCH}"
+
+          git merge --no-ff --no-edit "template/${TEMPLATE_BRANCH}"
+
+          if git diff --quiet "origin/${default_branch}...HEAD"; then
+            echo "has_updates=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_updates=true" >> "$GITHUB_OUTPUT"
+            echo "default_branch=${default_branch}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push sync branch
+        if: steps.merge.outputs.has_updates == 'true'
+        run: |
+          set -euo pipefail
+          git push --force-with-lease origin "HEAD:${SYNC_BRANCH}"
+
+      - name: Open sync pull request
+        if: steps.merge.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ steps.merge.outputs.default_branch }}
+        run: |
+          set -euo pipefail
+
+          existing_pr="$(gh pr list --base "${DEFAULT_BRANCH}" --head "${SYNC_BRANCH}" --state open --json number --jq '.[0].number // empty')"
+          if [[ -n "${existing_pr}" ]]; then
+            echo "Template sync PR already open: #${existing_pr}"
+            exit 0
+          fi
+
+          gh pr create \
+            --base "${DEFAULT_BRANCH}" \
+            --head "${SYNC_BRANCH}" \
+            --title "chore: sync template updates" \
+            --body "Automated sync from ${TEMPLATE_REPO}@${TEMPLATE_BRANCH}."
+
+      - name: No updates
+        if: steps.merge.outputs.has_updates != 'true'
+        run: echo "No template updates found."
