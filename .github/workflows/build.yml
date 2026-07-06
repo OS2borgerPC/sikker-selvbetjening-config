@@ -155,6 +155,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          # GHCR/Docker repository names must be lowercase.
+          image_repo_lower="$(printf '%s' "${IMAGE_REPO}" | tr '[:upper:]' '[:lower:]')"
+
           mapfile -t imageconfig_pairs < <(python3 - <<'PY'
           import json
           import os
@@ -168,6 +171,7 @@ jobs:
           for pair in "${imageconfig_pairs[@]}"; do
             tenant="${pair%%|*}"
             imageconfig="${pair#*|}"
+            tenant_lower="$(printf '%s' "${tenant}" | tr '[:upper:]' '[:lower:]')"
 
             if [[ -z "${tenant}" || -z "${imageconfig}" ]]; then
               echo "Invalid tenant/imageconfig pair: ${pair}" >&2
@@ -181,8 +185,9 @@ jobs:
               echo "Missing required image_id in imageconfig: ${imageconfig}" >&2
               exit 1
             fi
+            image_id_lower="$(printf '%s' "${image_id}" | tr '[:upper:]' '[:lower:]')"
 
-            target_image_ref="${IMAGE_REPO}/${tenant}/${image_id}:latest"
+            target_image_ref="${image_repo_lower}/${tenant_lower}/${image_id_lower}:latest"
             ./scripts/build-image.sh "${imageconfig}" "${policies_root}" "${assets_root}" "${target_image_ref}"
           done
 
