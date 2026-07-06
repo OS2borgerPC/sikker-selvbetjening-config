@@ -19,8 +19,11 @@ This repository is intended to be copied and used as a tenant-specific configura
 
 The workflow pushes images with `GITHUB_TOKEN`, so the repository must allow package writes.
 
-1. In your repository settings, ensure Actions workflow permissions allow write access.
-2. Keep workflow permissions including `packages: write`.
+What to enable in the target repo:
+
+1. `Settings` -> `Actions` -> `General`
+2. Under Workflow permissions: `Read and write permissions`
+3. Enable `Allow GitHub Actions to create and approve pull requests`
 
 ### 3. Image publishing namespace
 
@@ -64,10 +67,9 @@ Configuration:
 2. `TEMPLATE_BRANCH`: upstream branch to sync from.
 3. `SYNC_BRANCH`: branch used for sync PRs.
 
-Permissions required:
 
-1. `contents: write`
-2. `pull-requests: write`
+
+
 
 If your copied repository should sync from a different upstream than the default, update `TEMPLATE_REPO` in [ .github/workflows/template-sync.yml ](.github/workflows/template-sync.yml).
 
