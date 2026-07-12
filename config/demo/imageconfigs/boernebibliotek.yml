@@ -1,5 +1,6 @@
 name: Børnebibliotek
-description: Build image configuration for selvbetjeningsPCer på Biblioteket Sønderborg (børnebiblioteket)
+description: Build image configuration for selvbetjeningsPCer på Biblioteket
+  Sønderborg (børnebiblioteket)
 policies:
   - ../policies/bibliotek-selvbetjeningspc.yml
   - ../policies/startside-boerneportalen.yml

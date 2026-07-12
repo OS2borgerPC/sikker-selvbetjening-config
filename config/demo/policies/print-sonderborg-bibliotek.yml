@@ -1,5 +1,4 @@
 name: print-sonderborg-bibliotek
-
 printer:
   printers:
     with_ppd:

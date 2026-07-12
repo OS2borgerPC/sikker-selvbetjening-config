@@ -1,5 +1,4 @@
 name: startside-boerneportalen
-
 firefox:
   urls:
     - https://go.biblioteket.sonderborg.dk/
