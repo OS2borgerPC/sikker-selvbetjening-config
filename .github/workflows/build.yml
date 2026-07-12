@@ -20,8 +20,9 @@ env:
   # own GHCR namespace.
   IMAGE_REPO: ghcr.io/${{ github.repository }}
 
-  # Directories under config/ where imageconfigs, assets and policies are located.
+ 
   CONFIGS_DIR: config
+
   IMAGECONFIGS_DIR: imageconfigs
   ASSETS_DIR: assets
   POLICIES_DIR: policies
