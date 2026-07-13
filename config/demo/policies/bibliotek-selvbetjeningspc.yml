@@ -1,6 +1,15 @@
 name: bibliotek-selvbetjeningspc
 desktop:
   background_image_file: /assets/ged.jpg
+printer:
+  printers:
+    with_ppd:
+      - printer-type: with_ppd
+        name: bizhub-42
+        display_name: Bizhub 42
+        ip: 172.17.10.19
+        protocol: ipp
+        ppd_file: /assets/Ricoh-IM_C3010-PDF-Ricoh.ppd
 wifi:
   ssid: borgernet
   psk: bbbbb
