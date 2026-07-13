@@ -4,4 +4,5 @@ description: Build image configuration for selvbetjeningsPCer på Biblioteket
 policies:
   - ../policies/bibliotek-selvbetjeningspc.yml
   - ../policies/startside-boerneportalen.yml
+  - ../policies/policy-1783854504584.yml
 image_id: selvbetjeningspc_sonderborg_boernebibliotek
