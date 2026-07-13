@@ -3,6 +3,6 @@ description: Build image configuration for selvbetjeningsPCer på Biblioteket
   Sønderborg (børnebiblioteket)
 policies:
   - ../policies/bibliotek-selvbetjeningspc.yml
-  - ../policies/startside-boerneportalen.yml
   - ../policies/policy-1783854504584.yml
+  - ../policies/startside-boerneportalen.yml
 image_id: selvbetjeningspc_sonderborg_boernebibliotek
