@@ -1,0 +1,4 @@
+name: Gråsten bibliotek
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: graasten_bibliotek
