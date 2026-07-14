@@ -1,0 +1,4 @@
+name: Broager Bibliotek
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: broager_bibliotek
