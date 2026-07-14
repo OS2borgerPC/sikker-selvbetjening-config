@@ -1,0 +1,5 @@
+name: Augustenborg Bibliotek
+description: PublikumsPCer på Augustenborg Bibliotek
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: publikum_augustenborg_bib
