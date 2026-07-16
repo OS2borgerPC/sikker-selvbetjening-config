@@ -1,4 +1,0 @@
-name: V Sottrup Bibliotek
-policies:
-  - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: vsottrup_bibliotek
