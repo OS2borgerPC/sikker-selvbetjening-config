@@ -1,4 +1,0 @@
-name: Aabenraa bibliotek
-policies:
-  - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: aabenraa_bibliotek
