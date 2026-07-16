@@ -11,7 +11,7 @@ printer:
         protocol: ipp
         ppd_file: /assets/Bizhub-42.ppd
 wifi:
-  ssid: borgernet
+  ssid: borgernett
   psk: bbbbb
   hidden: false
 favorite_apps:
