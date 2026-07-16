@@ -1,0 +1,4 @@
+name: Vester Sottrup
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: vester_sottrup
