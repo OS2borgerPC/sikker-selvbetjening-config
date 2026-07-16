@@ -1,4 +1,4 @@
-name: Vester Sottrup
+name: Hørup Bibliotek
 policies:
   - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: vester_sottrup
+image_id: horup
