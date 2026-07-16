@@ -1,0 +1,4 @@
+name: broballe
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: broballe
