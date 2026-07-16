@@ -1,4 +1,4 @@
-name: Hørup Bibliotek
+name: Goderup
 policies:
   - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: horup
+image_id: guderup
