@@ -1,0 +1,4 @@
+name: vollerup
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: vollerup
