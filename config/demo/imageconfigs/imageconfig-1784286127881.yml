@@ -1,0 +1,4 @@
+name: skovby
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: skovby
