@@ -1,0 +1,4 @@
+name: havnbjerg
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: havnbjerg
