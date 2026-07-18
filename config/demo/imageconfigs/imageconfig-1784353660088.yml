@@ -1,0 +1,4 @@
+name: mommark
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: mommark
