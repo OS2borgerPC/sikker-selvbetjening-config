@@ -1,0 +1,4 @@
+name: svenstrup
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: svenstrup
