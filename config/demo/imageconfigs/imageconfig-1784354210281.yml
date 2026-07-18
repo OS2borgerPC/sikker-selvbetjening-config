@@ -1,4 +1,0 @@
-name: asserballe
-policies:
-  - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: asserballe
