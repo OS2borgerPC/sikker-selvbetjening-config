@@ -1,0 +1,4 @@
+name: dyndved
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: dyndved
