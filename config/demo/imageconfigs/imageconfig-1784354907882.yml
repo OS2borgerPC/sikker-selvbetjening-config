@@ -1,0 +1,4 @@
+name: notmark
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: notmark
