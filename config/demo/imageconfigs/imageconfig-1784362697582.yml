@@ -1,0 +1,4 @@
+name: guderup4
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: guderup4
