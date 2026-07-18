@@ -1,0 +1,4 @@
+name: sjellerup
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: sjellerup
