@@ -1,0 +1,4 @@
+name: elstrup
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: elstrup
