@@ -1,0 +1,4 @@
+name: fynshav
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: fynshav
