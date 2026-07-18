@@ -1,0 +1,4 @@
+name: guderup2
+policies:
+  - ../policies/policy-1784200317794.yml
+image_id: guderup2
