@@ -1,0 +1,4 @@
+name: lysabild
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: lysabild
