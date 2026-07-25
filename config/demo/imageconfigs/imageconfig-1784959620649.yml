@@ -1,0 +1,4 @@
+name: Agntes testttt
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: mesh/demo/FlNLOSGhfN3I
