@@ -1,4 +1,0 @@
-name: stolbro3
-policies:
-  - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: stolbro3

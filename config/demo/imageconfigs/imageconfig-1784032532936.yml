@@ -1,4 +1,0 @@
-name: Nordborg Bibliotek
-policies:
-  - ../policies/bibliotek-selvbetjeningspc.yml
-image_id: borger_nordborg
