@@ -1,0 +1,4 @@
+name: My new imageconfig
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: my_imageconfig
