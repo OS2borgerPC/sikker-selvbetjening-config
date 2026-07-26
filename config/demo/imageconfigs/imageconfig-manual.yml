@@ -1,0 +1,4 @@
+name: Manual
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: mesh/demo/e307wql8rdFF
