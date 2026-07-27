@@ -1,0 +1,4 @@
+name: Brugertest2
+policies:
+  - ../policies/bibliotek-selvbetjeningspc.yml
+image_id: mesh/demo/4eukIMvTQN3o
